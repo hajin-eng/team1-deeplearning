@@ -60,7 +60,7 @@ LABELS = [
 
 N_TOTAL, N_TRAIN, N_TEST = 7535, 5274, 2261  # 있어야 할 행 수
 
-VALID_FOLDS = 5  # train을 5조각으로 나눠 1조각을 검증용으로 쓴다 (= 검증용 20%)
+VALID_FOLDS = 5  # train을 5조각으로 나눠 조각마다 한 번씩 검증용으로 쓴다 (교차검증)
 
 CLASS_WEIGHT = "balanced"  # 소수 클래스를 틀리면 벌점을 크게 (None으로 바꾸면 끔)
 MAX_ITER = 1000  # 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
@@ -167,33 +167,76 @@ def make_twin_groups(df):
 
 
 def split_validation(df, groups):
-    """[4단계] train 안에서 학습용 / 검증용을 나눈다.
+    """[4단계] train을 5조각으로 나눠, (학습용, 검증용) 5쌍을 만든다.
 
-    쌍둥이는 같은 쪽에 넣고(Group), 클래스 비율은 양쪽이 같게 맞춘다(Stratified).
+    각 조각이 한 번씩 돌아가며 검증용이 된다 (교차검증).
+    쌍둥이는 같은 조각에 넣고(Group), 클래스 비율은 조각마다 같게 맞춘다(Stratified).
     """
     train_idx = df.index[df["split"] == "train"]
     y = df.loc[train_idx, TARGET_COL]
     g = groups.loc[train_idx]
 
     sgkf = StratifiedGroupKFold(n_splits=VALID_FOLDS, shuffle=True, random_state=SEED)
-    fit_pos, valid_pos = next(sgkf.split(train_idx, y, g))  # 5조각 중 첫 번째만 사용
-    fit_idx, valid_idx = train_idx[fit_pos], train_idx[valid_pos]
+    folds = []
+    counts = {}
+    for k, (fit_pos, valid_pos) in enumerate(sgkf.split(train_idx, y, g), start=1):
+        fit_idx, valid_idx = train_idx[fit_pos], train_idx[valid_pos]
 
-    # 검증
-    assert len(fit_idx) + len(valid_idx) == N_TRAIN, "학습용 + 검증용이 train 수와 다름"
-    assert not set(groups.loc[fit_idx]) & set(groups.loc[valid_idx]), (
-        "쌍둥이가 양쪽에 나뉘어 들어감"
+        # 검증
+        assert len(fit_idx) + len(valid_idx) == N_TRAIN, (
+            "학습용 + 검증용이 train 수와 다름"
+        )
+        assert not set(groups.loc[fit_idx]) & set(groups.loc[valid_idx]), (
+            "쌍둥이가 양쪽에 나뉘어 들어감"
+        )
+
+        folds.append((fit_idx, valid_idx))
+        counts[f"조각{k}"] = df.loc[valid_idx, TARGET_COL].value_counts()
+
+    # 검증: 모든 train 샷이 정확히 한 번씩 검증용이 되었는가
+    all_valid = np.concatenate([valid_idx for _, valid_idx in folds])
+    assert sorted(all_valid) == sorted(train_idx), (
+        "검증용이 train을 정확히 한 번씩 덮지 않음"
     )
 
-    print(f"[4단계] 검증 분할: 학습용 {len(fit_idx)} / 검증용 {len(valid_idx)}")
-    counts = pd.DataFrame(
-        {
-            "학습용": df.loc[fit_idx, TARGET_COL].value_counts(),
-            "검증용": df.loc[valid_idx, TARGET_COL].value_counts(),
-        }
+    print(f"[4단계] 교차검증 분할: {VALID_FOLDS}조각. 조각별 검증용 클래스 수:")
+    print(pd.DataFrame(counts).reindex(LABELS).to_string())
+    return folds
+
+
+def cross_validate(df, X, folds):
+    """[5~6단계] 5쌍을 돌며 학습·예측하고, 검증 예측을 하나로 모은다.
+
+    반환: 모은 예측(train 전체에 하나씩), 조각별 macro F1 목록
+    """
+    oof_pred = pd.Series(index=df.index[df["split"] == "train"], dtype=object)
+    fold_scores = []
+    for k, (fit_idx, valid_idx) in enumerate(folds, start=1):
+        model = build_model()
+        model.fit(X.loc[fit_idx], df.loc[fit_idx, TARGET_COL])
+        pred = model.predict(X.loc[valid_idx])
+        oof_pred.loc[valid_idx] = pred
+
+        score = f1_score(
+            df.loc[valid_idx, TARGET_COL],
+            pred,
+            labels=LABELS,
+            average="macro",
+            zero_division=0,
+        )
+        fold_scores.append(score)
+        n_iter = model.named_steps["clf"].n_iter_[0]
+        print(
+            f"[5단계] 조각{k}: 학습 {len(fit_idx)}행 (반복 {n_iter}회) "
+            f"→ 검증 {len(valid_idx)}행 macro F1 = {score:.4f}"
+        )
+
+    assert oof_pred.notna().all(), "검증 예측이 비어 있는 샷이 있음"
+    print(
+        f"[6단계] 조각별 macro F1: 평균 {np.mean(fold_scores):.4f} "
+        f"± {np.std(fold_scores):.4f} (최저 {min(fold_scores):.4f} / 최고 {max(fold_scores):.4f})"
     )
-    print(counts.reindex(LABELS).to_string())
-    return fit_idx, valid_idx
+    return oof_pred, fold_scores
 
 
 def build_model():
@@ -216,7 +259,9 @@ def evaluate(y_true, y_pred):
     """[6단계] 검증 점수를 계산하고 출력한다."""
     score = f1_score(y_true, y_pred, labels=LABELS, average="macro", zero_division=0)
 
-    print(f"[6단계] 검증 macro F1 = {score:.4f} (공개 기준선 {PUBLIC_BASELINE})")
+    print(
+        f"[6단계] 합쳐서 채점한 macro F1 = {score:.4f} (공개 기준선 {PUBLIC_BASELINE})"
+    )
     print(
         classification_report(y_true, y_pred, labels=LABELS, digits=3, zero_division=0)
     )
@@ -264,17 +309,11 @@ def main():
     df = load_data()  # 2단계
     X = preprocess(df)  # 3단계
     groups = make_twin_groups(df)  # 4단계
-    fit_idx, valid_idx = split_validation(df, groups)  # 4단계
-    model = build_model()  # 5단계
-    model.fit(X.loc[fit_idx], df.loc[fit_idx, TARGET_COL])
-    n_iter = model.named_steps["clf"].n_iter_[0]
-    print(
-        f"[5단계] 학습 완료: 학습용 {len(fit_idx)}행 (반복 {n_iter}회 / 최대 {MAX_ITER}회)"
-    )
-    valid_pred = model.predict(X.loc[valid_idx])  # 6단계
-    evaluate(df.loc[valid_idx, TARGET_COL], valid_pred)
+    folds = split_validation(df, groups)  # 4단계
+    oof_pred, fold_scores = cross_validate(df, X, folds)  # 5~6단계
+    train_idx = df.index[df["split"] == "train"]
+    evaluate(df.loc[train_idx, TARGET_COL], oof_pred.loc[train_idx])  # 6단계
 
-    train_idx = df.index[df["split"] == "train"]  # 7단계
     test_idx = df.index[df["split"] != "train"]
     final_model = build_model()
     final_model.fit(X.loc[train_idx], df.loc[train_idx, TARGET_COL])
