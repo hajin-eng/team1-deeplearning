@@ -18,6 +18,7 @@ import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
@@ -66,7 +67,11 @@ VALID_FOLDS = 5  # train을 5조각으로 나눠 조각마다 한 번씩 검증�
 CLASS_WEIGHT_POWER = (
     0.5  # 소수 클래스 가중치 강도 (0 = 끔, 1 = balanced 그대로, 0.5 = 그 중간)
 )
-MAX_ITER = 1000  # 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
+
+MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀) 또는 "rf" (랜덤포레스트)
+MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
+RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
+RF_MIN_LEAF = 10  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
 
 PUBLIC_BASELINE = 0.2517  # 강사 공개 기준선 (로지스틱 + class_weight, public 점수)
 
@@ -229,9 +234,8 @@ def cross_validate(df, X, folds):
             zero_division=0,
         )
         fold_scores.append(score)
-        n_iter = model.named_steps["clf"].n_iter_[0]
         print(
-            f"[5단계] 조각{k}: 학습 {len(fit_idx)}행 (반복 {n_iter}회) "
+            f"[5단계] 조각{k}: 학습 {len(fit_idx)}행 "
             f"→ 검증 {len(valid_idx)}행 macro F1 = {score:.4f}"
         )
 
@@ -257,22 +261,38 @@ def make_class_weight(y):
 def build_model(y):
     """[5단계] 학습할 모델을 만든다. y는 학습용 정답 (클래스 가중치 계산용)
 
-    결측 채우기 → 크기 맞추기 → 로지스틱 회귀를 하나로 묶는다(Pipeline).
+    MODEL_NAME에 따라 로지스틱 또는 랜덤포레스트를 Pipeline으로 묶는다.
     묶어 두면 중앙값·평균 같은 값이 학습용 데이터에서만 계산된다.
     """
-    model = Pipeline(
-        [
+    class_weight = make_class_weight(y)
+
+    if MODEL_NAME == "logistic":
+        steps = [
             ("imputer", SimpleImputer(strategy="median")),
             ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(class_weight=class_weight, max_iter=MAX_ITER)),
+        ]
+    elif MODEL_NAME == "rf":
+        steps = [
+            (
+                "imputer",
+                SimpleImputer(strategy="median"),
+            ),  # 나무는 크기 맞추기가 필요 없다
             (
                 "clf",
-                LogisticRegression(
-                    class_weight=make_class_weight(y), max_iter=MAX_ITER
+                RandomForestClassifier(
+                    n_estimators=RF_N_TREES,
+                    min_samples_leaf=RF_MIN_LEAF,
+                    class_weight=class_weight,
+                    random_state=SEED,
+                    n_jobs=-1,  # CPU 코어를 모두 써서 빠르게 (결과는 같다)
                 ),
             ),
         ]
-    )
-    return model
+    else:
+        raise ValueError(f"알 수 없는 MODEL_NAME: {MODEL_NAME}")
+
+    return Pipeline(steps)
 
 
 def evaluate(y_true, y_pred):
@@ -340,7 +360,7 @@ def main():
     final_model.fit(X.loc[train_idx], y_train)
     print(
         f"[7단계] 최종 학습 완료: train 전체 {len(train_idx)}행 "
-        f"(class_weight 강도 {CLASS_WEIGHT_POWER})"
+        f"({MODEL_NAME}, class_weight 강도 {CLASS_WEIGHT_POWER})"
     )
 
     sub = make_submission(final_model, X.loc[test_idx], df.loc[test_idx, "shot_id"])
