@@ -20,6 +20,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
 
@@ -62,7 +63,9 @@ N_TOTAL, N_TRAIN, N_TEST = 7535, 5274, 2261  # 있어야 할 행 수
 
 VALID_FOLDS = 5  # train을 5조각으로 나눠 조각마다 한 번씩 검증용으로 쓴다 (교차검증)
 
-CLASS_WEIGHT = "balanced"  # 소수 클래스를 틀리면 벌점을 크게 (None으로 바꾸면 끔)
+CLASS_WEIGHT_POWER = (
+    0.5  # 소수 클래스 가중치 강도 (0 = 끔, 1 = balanced 그대로, 0.5 = 그 중간)
+)
 MAX_ITER = 1000  # 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 
 PUBLIC_BASELINE = 0.2517  # 강사 공개 기준선 (로지스틱 + class_weight, public 점수)
@@ -212,8 +215,9 @@ def cross_validate(df, X, folds):
     oof_pred = pd.Series(index=df.index[df["split"] == "train"], dtype=object)
     fold_scores = []
     for k, (fit_idx, valid_idx) in enumerate(folds, start=1):
-        model = build_model()
-        model.fit(X.loc[fit_idx], df.loc[fit_idx, TARGET_COL])
+        y_fit = df.loc[fit_idx, TARGET_COL]
+        model = build_model(y_fit)
+        model.fit(X.loc[fit_idx], y_fit)
         pred = model.predict(X.loc[valid_idx])
         oof_pred.loc[valid_idx] = pred
 
@@ -239,8 +243,19 @@ def cross_validate(df, X, folds):
     return oof_pred, fold_scores
 
 
-def build_model():
-    """[5단계] 학습할 모델을 만든다.
+def make_class_weight(y):
+    """[5단계] 학습용 정답으로 클래스별 가중치를 계산한다.
+
+    가중치 = (balanced 가중치) ** 강도. 적은 클래스일수록 가중치가 크다.
+    학습용 정답만으로 계산해야 검증용 정보가 새어 들어가지 않는다.
+    """
+    labels = np.array(LABELS)
+    balanced = compute_class_weight("balanced", classes=labels, y=y)
+    return {label: w**CLASS_WEIGHT_POWER for label, w in zip(labels, balanced)}
+
+
+def build_model(y):
+    """[5단계] 학습할 모델을 만든다. y는 학습용 정답 (클래스 가중치 계산용)
 
     결측 채우기 → 크기 맞추기 → 로지스틱 회귀를 하나로 묶는다(Pipeline).
     묶어 두면 중앙값·평균 같은 값이 학습용 데이터에서만 계산된다.
@@ -249,7 +264,12 @@ def build_model():
         [
             ("imputer", SimpleImputer(strategy="median")),
             ("scaler", StandardScaler()),
-            ("clf", LogisticRegression(class_weight=CLASS_WEIGHT, max_iter=MAX_ITER)),
+            (
+                "clf",
+                LogisticRegression(
+                    class_weight=make_class_weight(y), max_iter=MAX_ITER
+                ),
+            ),
         ]
     )
     return model
@@ -315,9 +335,13 @@ def main():
     evaluate(df.loc[train_idx, TARGET_COL], oof_pred.loc[train_idx])  # 6단계
 
     test_idx = df.index[df["split"] != "train"]
-    final_model = build_model()
-    final_model.fit(X.loc[train_idx], df.loc[train_idx, TARGET_COL])
-    print(f"[7단계] 최종 학습 완료: train 전체 {len(train_idx)}행")
+    y_train = df.loc[train_idx, TARGET_COL]
+    final_model = build_model(y_train)
+    final_model.fit(X.loc[train_idx], y_train)
+    print(
+        f"[7단계] 최종 학습 완료: train 전체 {len(train_idx)}행 "
+        f"(class_weight 강도 {CLASS_WEIGHT_POWER})"
+    )
 
     sub = make_submission(final_model, X.loc[test_idx], df.loc[test_idx, "shot_id"])
     check_submission(sub)
