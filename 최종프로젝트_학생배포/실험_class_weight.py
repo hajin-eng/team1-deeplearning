@@ -20,19 +20,18 @@ start = time.time()
 main.set_seed(main.SEED)
 
 # 데이터 준비는 강도와 상관없으니 한 번만 한다
-df = main.load_data()
-X = main.preprocess(df)
-groups = main.make_twin_groups(df)
-folds = main.split_validation(df, groups)
-train_idx = df.index[df["split"] == "train"]
-y_true = df.loc[train_idx, main.TARGET_COL]
+data = main.load_data(drop_cols=main.DROP_COLS)  # 데이터 파트 preprocess.py
+main.check_data(data)
+X = data["X_train"]
+y_true = data["y_train"]
+folds = main.split_validation(y_true, data["groups_train"])
 
 rows = []
 for power in POWERS:
     main.CLASS_WEIGHT_POWER = power  # 다이얼 돌리기
     print(f"\n===== 강도 {power} =====")
-    oof_pred, fold_scores = main.cross_validate(df, X, folds)
-    pred = oof_pred.loc[train_idx]
+    oof_pred, fold_scores = main.cross_validate(X, y_true, folds)
+    pred = oof_pred
 
     is_normal = y_true == "정상"
     rows.append(

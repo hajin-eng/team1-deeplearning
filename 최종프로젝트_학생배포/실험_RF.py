@@ -23,12 +23,11 @@ main.set_seed(main.SEED)
 main.MODEL_NAME = "rf"  # 이 실험은 RF만 본다
 
 # 데이터 준비는 설정과 상관없으니 한 번만 한다
-df = main.load_data()
-X = main.preprocess(df)
-groups = main.make_twin_groups(df)
-folds = main.split_validation(df, groups)
-train_idx = df.index[df["split"] == "train"]
-y_true = df.loc[train_idx, main.TARGET_COL]
+data = main.load_data(drop_cols=main.DROP_COLS)  # 데이터 파트 preprocess.py
+main.check_data(data)
+X = data["X_train"]
+y_true = data["y_train"]
+folds = main.split_validation(y_true, data["groups_train"])
 
 rows = []
 for min_leaf in MIN_LEAVES:
@@ -36,8 +35,8 @@ for min_leaf in MIN_LEAVES:
         main.RF_MIN_LEAF = min_leaf  # 다이얼 1
         main.CLASS_WEIGHT_POWER = power  # 다이얼 2
         print(f"\n===== 잎 최소 {min_leaf}, 강도 {power} =====")
-        oof_pred, fold_scores = main.cross_validate(df, X, folds)
-        pred = oof_pred.loc[train_idx]
+        oof_pred, fold_scores = main.cross_validate(X, y_true, folds)
+        pred = oof_pred
 
         is_normal = y_true == "정상"
         rows.append(

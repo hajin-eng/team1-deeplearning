@@ -18,11 +18,13 @@ import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
+
+from preprocess import load_data  # 데이터 파트 전처리 (2~3단계)
 
 
 # ============================================================
@@ -32,23 +34,10 @@ SEED = 42
 TEAM_NAME = "동동문하"
 
 BASE_DIR = Path(__file__).resolve().parent  # main.py가 있는 폴더
-INPUT_PATH = BASE_DIR / "data" / "주조공정_입력.csv"
-SPLIT_PATH = BASE_DIR / "분할표.csv"
-LABEL_PATH = BASE_DIR / "정답_train.csv"
 SUBMIT_PATH = BASE_DIR / f"제출_{TEAM_NAME}.csv"
 
-ID_COLS = ["shot_id", "id", "Shot"]  # 피처로 쓰면 실격인 열
-CONSTANT_COLS = [
-    "Air_Pressure_Min",
-    "Air_Pressure_Max",  # 모든 행에서 값이 하나뿐인 열
-    "Coolant_Temp_Min",
-    "Coolant_Temp_Max",  # (관리 기준 범위로 보임)
-    "Factory_Temp_Min",
-    "Factory_Temp_Max",
-    "Factory_Humidity_Min",
-    "Factory_Humidity_Max",
-]
-EXTRA_DROP_COLS = []  # 추가로 뺄 열 (현장 수정: "이 열 빼고 돌려 보세요" → 여기에 이름 추가)
+ID_COLS = ["shot_id", "id", "Shot"]  # 피처로 쓰면 실격인 열 (검사용)
+DROP_COLS = ()  # 추가로 뺄 열 (현장 수정: "이 열 빼고 돌려 보세요" → 여기에 이름 추가)
 TARGET_COL = "label"
 LABELS = [
     "정상",
@@ -60,7 +49,7 @@ LABELS = [
     "기타불량",
 ]  # 제출 가능한 라벨 7종
 
-N_TOTAL, N_TRAIN, N_TEST = 7535, 5274, 2261  # 있어야 할 행 수
+N_TRAIN, N_TEST = 5274, 2261  # 있어야 할 행 수
 
 VALID_FOLDS = 5  # train을 5조각으로 나눠 조각마다 한 번씩 검증용으로 쓴다 (교차검증)
 
@@ -68,10 +57,13 @@ CLASS_WEIGHT_POWER = (
     0.5  # 소수 클래스 가중치 강도 (0 = 끔, 1 = balanced 그대로, 0.5 = 그 중간)
 )
 
-MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀) 또는 "rf" (랜덤포레스트)
+MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting)
 MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
 RF_MIN_LEAF = 10  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
+HGB_MAX_LEAF_NODES = 15  # [HGB] 나무 하나의 잎 최대 개수 (데이터 파트 추천 설정 B)
+HGB_LEARNING_RATE = 0.05  # [HGB] 앞 나무의 오답을 한 번에 얼마나 고칠지 (설정 B)
+HGB_MAX_ITER = 100  # [HGB] 나무 수 (설정 B)
 
 PUBLIC_BASELINE = 0.2517  # 강사 공개 기준선 (로지스틱 + class_weight, public 점수)
 
@@ -93,102 +85,37 @@ def set_seed(seed):
         pass  # torch는 MLP 단계부터 사용한다
 
 
-def load_data():
-    """[2단계] 입력·분할표·정답을 읽어 하나의 표로 합친다."""
-    # (1) 파일 읽기
-    inputs = pd.read_csv(INPUT_PATH, header=1, encoding="utf-8-sig")
-    inputs.columns = inputs.columns.str.strip()  # 컬럼명 앞뒤 공백 제거
-    split = pd.read_csv(SPLIT_PATH, encoding="utf-8-sig")
-    labels = pd.read_csv(LABEL_PATH, encoding="utf-8-sig")
+def check_data(data):
+    """[2~3단계] 데이터 파트 load_data()의 결과가 있어야 할 모습인지 확인한다."""
+    X_train, y_train = data["X_train"], data["y_train"]
+    X_test, groups = data["X_test"], data["groups_train"]
 
-    # (2) shot_id 기준으로 합치기
-    df = inputs.merge(split, on="shot_id", how="left", validate="one_to_one")
-    df = df.merge(labels, on="shot_id", how="left", validate="one_to_one")
-    df = df.sort_values("shot_id").reset_index(drop=True)
-
-    # (3) 검증: 있어야 할 모습과 다르면 즉시 멈춘다
-    is_train = df["split"] == "train"
-    assert len(df) == N_TOTAL, f"전체 행 수가 {len(df)}개"
-    assert df["split"].notna().all(), "분할 정보가 없는 샷이 있음"
-    assert is_train.sum() == N_TRAIN, f"train 행 수가 {is_train.sum()}개"
-    assert (~is_train).sum() == N_TEST, f"제출 대상 행 수가 {(~is_train).sum()}개"
-    assert df.loc[is_train, TARGET_COL].notna().all(), "정답이 없는 train 샷이 있음"
-    assert df.loc[~is_train, TARGET_COL].isna().all(), "제출 대상에 정답이 붙어 있음"
-    assert df.loc[is_train, TARGET_COL].isin(LABELS).all(), "알 수 없는 라벨이 있음"
+    assert len(X_train) == len(y_train) == len(groups) == N_TRAIN, "train 행 수가 다름"
+    assert len(X_test) == len(data["test_ids"]) == N_TEST, "제출 대상 행 수가 다름"
+    assert list(X_train.columns) == list(X_test.columns), "train과 test의 열이 다름"
+    assert not set(ID_COLS) & set(X_train.columns), "식별 열이 피처에 들어감"
+    assert "group" not in X_train.columns, "그룹 번호가 피처에 들어감"
+    assert y_train.isin(LABELS).all(), "알 수 없는 라벨이 있음"
 
     print(
-        f"[2단계] 데이터 불러오기 완료: 전체 {len(df)}행 × {df.shape[1]}열 "
-        f"(train {is_train.sum()} / 제출 대상 {(~is_train).sum()})"
-    )
-    return df
-
-
-def preprocess(df):
-    """[3단계] 모델에 넣을 피처 표를 만든다. (데이터 파트 결과로 교체될 부분)
-
-    여기서는 규칙형 처리(열 빼기)만 한다.
-    결측 채우기처럼 데이터에서 값을 계산하는 처리는 5단계 Pipeline 안에서 한다.
-    """
-    non_feature_cols = ID_COLS + ["split", TARGET_COL]
-    drop_cols = non_feature_cols + CONSTANT_COLS + EXTRA_DROP_COLS
-
-    # 상수열이 정말 상수인지 확인 (결측은 빼고 센다)
-    for col in CONSTANT_COLS:
-        assert df[col].nunique() == 1, f"{col}은 상수열이 아님"
-
-    X = df.drop(columns=drop_cols)
-
-    # 검증
-    assert len(X) == N_TOTAL, "전처리 중에 행 수가 바뀜"
-    assert not set(ID_COLS) & set(X.columns), "식별 열이 피처에 들어감"
-    assert all(pd.api.types.is_numeric_dtype(X[c]) for c in X.columns), (
-        "숫자가 아닌 열이 있음"
+        f"[2~3단계] 데이터 파트 load_data() 완료: train {len(X_train)}행 / "
+        f"제출 대상 {len(X_test)}행 / 피처 {X_train.shape[1]}개 / "
+        f"남은 결측 {int(X_train.isna().sum().sum() + X_test.isna().sum().sum())}개 / "
+        f"쌍둥이 그룹 {groups.nunique()}개"
     )
 
-    n_missing = X.isna().sum()
-    print(
-        f"[3단계] 전처리 완료: 피처 {X.shape[1]}개 (제외 {len(drop_cols)}개) "
-        f"/ 결측이 있는 열: {n_missing[n_missing > 0].to_dict()}"
-    )
-    return X
 
-
-def make_twin_groups(df):
-    """[4단계] 같은 샷이 두 번 기록된 쌍둥이 행에 같은 그룹 번호를 붙인다.
-
-    쌍둥이 = 바로 앞 행과 입력값(Shot 포함)이 전부 같은 행
-    """
-    input_cols = [
-        c for c in df.columns if c not in ("shot_id", "id", "split", TARGET_COL)
-    ]
-    values = df[input_cols].fillna(-1)  # 결측끼리도 같다고 비교하기 위해
-    same_as_prev = values.eq(values.shift()).all(
-        axis=1
-    )  # 바로 앞 행과 모든 열이 같은가
-    groups = (~same_as_prev).cumsum()  # 앞 행과 다를 때마다 그룹 번호 +1
-
-    print(
-        f"[4단계] 쌍둥이 그룹: 바로 앞 행과 같은 행 {same_as_prev.sum()}개 "
-        f"→ 그룹 {groups.nunique()}개"
-    )
-    return groups
-
-
-def split_validation(df, groups):
+def split_validation(y, groups):
     """[4단계] train을 5조각으로 나눠, (학습용, 검증용) 5쌍을 만든다.
 
     각 조각이 한 번씩 돌아가며 검증용이 된다 (교차검증).
     쌍둥이는 같은 조각에 넣고(Group), 클래스 비율은 조각마다 같게 맞춘다(Stratified).
     """
-    train_idx = df.index[df["split"] == "train"]
-    y = df.loc[train_idx, TARGET_COL]
-    g = groups.loc[train_idx]
-
     sgkf = StratifiedGroupKFold(n_splits=VALID_FOLDS, shuffle=True, random_state=SEED)
     folds = []
     counts = {}
-    for k, (fit_pos, valid_pos) in enumerate(sgkf.split(train_idx, y, g), start=1):
-        fit_idx, valid_idx = train_idx[fit_pos], train_idx[valid_pos]
+    for k, (fit_pos, valid_pos) in enumerate(sgkf.split(y, y, groups), start=1):
+        fit_idx, valid_idx = y.index[fit_pos], y.index[valid_pos]
 
         # 검증
         assert len(fit_idx) + len(valid_idx) == N_TRAIN, (
@@ -199,11 +126,11 @@ def split_validation(df, groups):
         )
 
         folds.append((fit_idx, valid_idx))
-        counts[f"조각{k}"] = df.loc[valid_idx, TARGET_COL].value_counts()
+        counts[f"조각{k}"] = y.loc[valid_idx].value_counts()
 
     # 검증: 모든 train 샷이 정확히 한 번씩 검증용이 되었는가
     all_valid = np.concatenate([valid_idx for _, valid_idx in folds])
-    assert sorted(all_valid) == sorted(train_idx), (
+    assert sorted(all_valid) == sorted(y.index), (
         "검증용이 train을 정확히 한 번씩 덮지 않음"
     )
 
@@ -212,22 +139,22 @@ def split_validation(df, groups):
     return folds
 
 
-def cross_validate(df, X, folds):
+def cross_validate(X, y, folds):
     """[5~6단계] 5쌍을 돌며 학습·예측하고, 검증 예측을 하나로 모은다.
 
     반환: 모은 예측(train 전체에 하나씩), 조각별 macro F1 목록
     """
-    oof_pred = pd.Series(index=df.index[df["split"] == "train"], dtype=object)
+    oof_pred = pd.Series(index=y.index, dtype=object)
     fold_scores = []
     for k, (fit_idx, valid_idx) in enumerate(folds, start=1):
-        y_fit = df.loc[fit_idx, TARGET_COL]
+        y_fit = y.loc[fit_idx]
         model = build_model(y_fit)
         model.fit(X.loc[fit_idx], y_fit)
         pred = model.predict(X.loc[valid_idx])
         oof_pred.loc[valid_idx] = pred
 
         score = f1_score(
-            df.loc[valid_idx, TARGET_COL],
+            y.loc[valid_idx],
             pred,
             labels=LABELS,
             average="macro",
@@ -289,6 +216,21 @@ def build_model(y):
                 ),
             ),
         ]
+    elif MODEL_NAME == "hgb":
+        # HGB는 결측을 스스로 처리하고 크기 맞추기도 필요 없다.
+        # 글자 라벨로 만든 가중치 사전을 받지 못해서 "balanced"(강도 1)로 고정한다 (데이터 파트 추천 설정 그대로).
+        steps = [
+            (
+                "clf",
+                HistGradientBoostingClassifier(
+                    class_weight="balanced",
+                    max_leaf_nodes=HGB_MAX_LEAF_NODES,
+                    learning_rate=HGB_LEARNING_RATE,
+                    max_iter=HGB_MAX_ITER,
+                    random_state=SEED,
+                ),
+            ),
+        ]
     else:
         raise ValueError(f"알 수 없는 MODEL_NAME: {MODEL_NAME}")
 
@@ -345,25 +287,22 @@ def main():
     start = time.time()
     set_seed(SEED)
 
-    # 아래는 단계를 진행하면서 하나씩 채운다
-    df = load_data()  # 2단계
-    X = preprocess(df)  # 3단계
-    groups = make_twin_groups(df)  # 4단계
-    folds = split_validation(df, groups)  # 4단계
-    oof_pred, fold_scores = cross_validate(df, X, folds)  # 5~6단계
-    train_idx = df.index[df["split"] == "train"]
-    evaluate(df.loc[train_idx, TARGET_COL], oof_pred.loc[train_idx])  # 6단계
+    data = load_data(drop_cols=DROP_COLS)  # 2~3단계 (데이터 파트 preprocess.py)
+    check_data(data)
+    X_train, y_train = data["X_train"], data["y_train"]
+    folds = split_validation(y_train, data["groups_train"])  # 4단계
+    oof_pred, fold_scores = cross_validate(X_train, y_train, folds)  # 5~6단계
+    evaluate(y_train, oof_pred)  # 6단계
 
-    test_idx = df.index[df["split"] != "train"]
-    y_train = df.loc[train_idx, TARGET_COL]
     final_model = build_model(y_train)
-    final_model.fit(X.loc[train_idx], y_train)
+    final_model.fit(X_train, y_train)
+    weight = "balanced" if MODEL_NAME == "hgb" else f"강도 {CLASS_WEIGHT_POWER}"
     print(
-        f"[7단계] 최종 학습 완료: train 전체 {len(train_idx)}행 "
-        f"({MODEL_NAME}, class_weight 강도 {CLASS_WEIGHT_POWER})"
+        f"[7단계] 최종 학습 완료: train 전체 {len(X_train)}행 "
+        f"({MODEL_NAME}, class_weight {weight})"
     )
 
-    sub = make_submission(final_model, X.loc[test_idx], df.loc[test_idx, "shot_id"])
+    sub = make_submission(final_model, data["X_test"], data["test_ids"])
     check_submission(sub)
     sub.to_csv(SUBMIT_PATH, index=False, encoding="utf-8-sig", lineterminator="\n")
     print(f"[7단계] 저장 완료: {SUBMIT_PATH.name} ({len(sub)}행)")
