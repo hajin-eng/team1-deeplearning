@@ -60,7 +60,7 @@ CLASS_WEIGHT_POWER = (
 MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting)
 MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
-RF_MIN_LEAF = 10  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
+RF_MIN_LEAF = 5  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
 HGB_MAX_LEAF_NODES = 15  # [HGB] 나무 하나의 잎 최대 개수 (데이터 파트 추천 설정 B)
 HGB_LEARNING_RATE = 0.05  # [HGB] 앞 나무의 오답을 한 번에 얼마나 고칠지 (설정 B)
 HGB_MAX_ITER = 100  # [HGB] 나무 수 (설정 B)
