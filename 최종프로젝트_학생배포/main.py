@@ -1,9 +1,9 @@
 """
-동동문하 - 다이캐스팅 불량유형 예측
+2조 - 다이캐스팅 불량유형 예측
 포스코 K-뉴딜아카데미 딥러닝 최종 프로젝트
 
 실행 방법: 학생배포 폴더에서  python main.py
-결과 파일: 제출_동동문하.csv
+결과 파일: 제출_2조.csv
 """
 
 # ============================================================
@@ -31,7 +31,7 @@ from preprocess import load_data  # 데이터 파트 전처리 (2~3단계)
 # 1. 설정 (현장 수정 요청이 오면 주로 여기를 고친다)
 # ============================================================
 SEED = 42
-TEAM_NAME = "동동문하"
+TEAM_NAME = "2조"
 
 BASE_DIR = Path(__file__).resolve().parent  # main.py가 있는 폴더
 SUBMIT_PATH = BASE_DIR / f"제출_{TEAM_NAME}.csv"
@@ -60,7 +60,8 @@ CLASS_WEIGHT_POWER = (
 MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting)
 MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
-RF_MIN_LEAF = 5  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
+RF_MIN_LEAF = 4  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
+RF_MAX_FEATURES = 0.5  # [RF] 질문 하나를 고를 때 보는 열의 비율 ("sqrt" = 기본, 클수록 더 외움)
 HGB_MAX_LEAF_NODES = 15  # [HGB] 나무 하나의 잎 최대 개수 (데이터 파트 추천 설정 B)
 HGB_LEARNING_RATE = 0.05  # [HGB] 앞 나무의 오답을 한 번에 얼마나 고칠지 (설정 B)
 HGB_MAX_ITER = 100  # [HGB] 나무 수 (설정 B)
@@ -210,6 +211,7 @@ def build_model(y):
                 RandomForestClassifier(
                     n_estimators=RF_N_TREES,
                     min_samples_leaf=RF_MIN_LEAF,
+                    max_features=RF_MAX_FEATURES,
                     class_weight=class_weight,
                     random_state=SEED,
                     n_jobs=-1,  # CPU 코어를 모두 써서 빠르게 (결과는 같다)
