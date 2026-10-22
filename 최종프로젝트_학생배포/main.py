@@ -16,9 +16,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import (
+    ExtraTreesClassifier,
+    HistGradientBoostingClassifier,
+    RandomForestClassifier,
+)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
@@ -57,11 +62,12 @@ CLASS_WEIGHT_POWER = (
     0.5  # 소수 클래스 가중치 강도 (0 = 끔, 1 = balanced 그대로, 0.5 = 그 중간)
 )
 
-MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting)
+MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting), "rf_et" (랜덤포레스트 + ExtraTrees 확률 평균), "rf_et_2stage" (rf_et + 두 단계 모델 혼합)
 MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
-RF_MIN_LEAF = 4  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값)
-RF_MAX_FEATURES = 0.5  # [RF] 질문 하나를 고를 때 보는 열의 비율 ("sqrt" = 기본, 클수록 더 외움)
+RF_MIN_LEAF = 1  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값 = E안)
+RF_MAX_FEATURES = "sqrt"  # [RF] 질문 하나를 고를 때 보는 열의 수 ("sqrt" = 기본 = E안, 0.5 = 열의 절반)
+RFET_N_TREES = 900  # [rf_et] 랜덤포레스트와 ExtraTrees 각각의 나무 수
 HGB_MAX_LEAF_NODES = 15  # [HGB] 나무 하나의 잎 최대 개수 (데이터 파트 추천 설정 B)
 HGB_LEARNING_RATE = 0.05  # [HGB] 앞 나무의 오답을 한 번에 얼마나 고칠지 (설정 B)
 HGB_MAX_ITER = 100  # [HGB] 나무 수 (설정 B)
@@ -186,6 +192,85 @@ def make_class_weight(y):
     return {label: w**CLASS_WEIGHT_POWER for label, w in zip(labels, balanced)}
 
 
+class AverageProbaClassifier(ClassifierMixin, BaseEstimator):
+    """여러 분류기를 각각 학습하고, 예측 확률을 평균해 가장 큰 라벨을 고른다.
+
+    글자 라벨 그대로 학습시키려고 sklearn의 VotingClassifier(라벨을 숫자로 바꿔서
+    글자 키 가중치 사전과 맞지 않음) 대신 직접 만들었다. Pipeline의 마지막 단계로 쓴다.
+    """
+
+    def __init__(self, members):
+        self.members = members  # [(이름, 분류기), ...]
+
+    def fit(self, X, y):
+        for _, member in self.members:
+            member.fit(X, y)
+        self.classes_ = self.members[0][1].classes_  # 모든 분류기가 같은 순서(가나다순)
+        return self
+
+    def predict_proba(self, X):
+        return sum(member.predict_proba(X) for _, member in self.members) / len(self.members)
+
+    def predict(self, X):
+        return self.classes_[self.predict_proba(X).argmax(axis=1)]
+
+
+class TwoStageMixClassifier(ClassifierMixin, BaseEstimator):
+    """RF+ExtraTrees 다중분류와 '두 단계 모델'의 예측 확률을 절반씩 섞는다 (G안).
+
+    - 다중분류: 7종 라벨을 한 번에 맞히는 RF와 ExtraTrees의 확률 평균 (rf_et와 같음)
+    - 두 단계: 1단계 '불량인가'(RF+ET 평균) → 2단계 '불량 6종 중 무엇인가'(불량 샷만으로 학습한 RF+ET 평균)
+      확률 = 불량 확률 x 유형 확률, 정상 확률 = 1 - 불량 확률
+    - 최종 확률 = (1 - mix) x 다중분류 + mix x 두 단계, 가장 큰 라벨을 고른다.
+    글자 라벨 그대로 학습한다. Pipeline의 마지막 단계로 쓴다.
+    """
+
+    def __init__(self, n_trees=900, min_leaf=1, max_features="sqrt", class_weight=None, mix=0.5, seed=42):
+        self.n_trees = n_trees
+        self.min_leaf = min_leaf
+        self.max_features = max_features
+        self.class_weight = class_weight
+        self.mix = mix
+        self.seed = seed
+
+    def _pair(self, class_weight):
+        common = dict(
+            n_estimators=self.n_trees,
+            min_samples_leaf=self.min_leaf,
+            max_features=self.max_features,
+            class_weight=class_weight,
+            random_state=self.seed,
+            n_jobs=-1,
+        )
+        return [RandomForestClassifier(**common), ExtraTreesClassifier(**common)]
+
+    def fit(self, X, y):
+        y = np.asarray(y)
+        self.classes_ = np.array(sorted(set(y)))
+        self.normal_ = int(np.where(self.classes_ == "정상")[0][0])
+        defect = y != "정상"
+        self.multi_ = [m.fit(X, y) for m in self._pair(self.class_weight)]
+        self.stage1_ = [m.fit(X, defect) for m in self._pair("balanced_subsample")]
+        self.stage2_ = [m.fit(X[defect], y[defect]) for m in self._pair("balanced")]
+        return self
+
+    def predict_proba(self, X):
+        n = len(X)
+        multi = sum(m.predict_proba(X) for m in self.multi_) / len(self.multi_)
+        p_defect = sum(m.predict_proba(X)[:, 1] for m in self.stage1_) / len(self.stage1_)
+        by_type = np.zeros((n, len(self.classes_)))
+        for m in self.stage2_:
+            proba = m.predict_proba(X)
+            for j, label in enumerate(m.classes_):
+                by_type[:, int(np.where(self.classes_ == label)[0][0])] += proba[:, j] / len(self.stage2_)
+        two_stage = by_type * p_defect[:, None]
+        two_stage[:, self.normal_] = 1 - p_defect
+        return (1 - self.mix) * multi + self.mix * two_stage
+
+    def predict(self, X):
+        return self.classes_[self.predict_proba(X).argmax(axis=1)]
+
+
 def build_model(y):
     """[5단계] 학습할 모델을 만든다. y는 학습용 정답 (클래스 가중치 계산용)
 
@@ -217,6 +302,48 @@ def build_model(y):
                     n_jobs=-1,  # CPU 코어를 모두 써서 빠르게 (결과는 같다)
                 ),
             ),
+        ]
+    elif MODEL_NAME == "rf_et":
+        # 두 모델(잎 최소 RF_MIN_LEAF, 열 RF_MAX_FEATURES)의 예측 확률을 평균해 가장 큰 라벨을 고른다.
+        # ExtraTrees는 분할 기준을 무작위로 골라 RF보다 덜 공격적으로 불량을 부른다.
+        members = [
+            (
+                "rf",
+                RandomForestClassifier(
+                    n_estimators=RFET_N_TREES,
+                    min_samples_leaf=RF_MIN_LEAF,
+                    max_features=RF_MAX_FEATURES,
+                    class_weight=class_weight,
+                    random_state=SEED,
+                    n_jobs=-1,
+                ),
+            ),
+            (
+                "et",
+                ExtraTreesClassifier(
+                    n_estimators=RFET_N_TREES,
+                    min_samples_leaf=RF_MIN_LEAF,
+                    max_features=RF_MAX_FEATURES,
+                    class_weight=class_weight,
+                    random_state=SEED,
+                    n_jobs=-1,
+                ),
+            ),
+        ]
+        steps = [("clf", AverageProbaClassifier(members))]
+    elif MODEL_NAME == "rf_et_2stage":
+        steps = [
+            (
+                "clf",
+                TwoStageMixClassifier(
+                    n_trees=RFET_N_TREES,
+                    min_leaf=RF_MIN_LEAF,
+                    max_features=RF_MAX_FEATURES,
+                    class_weight=class_weight,
+                    mix=0.5,
+                    seed=SEED,
+                ),
+            )
         ]
     elif MODEL_NAME == "hgb":
         # HGB는 결측을 스스로 처리하고 크기 맞추기도 필요 없다.
