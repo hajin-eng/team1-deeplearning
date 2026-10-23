@@ -27,13 +27,17 @@
 - 참고_원본불량기록은 읽지 않는다 (PDF 규칙: 특징·라벨 재생성 금지).
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
-# 파일 경로. 모두 상대경로라서 학생배포/ 폴더에서 실행해야 한다 (절대경로를 쓰면 실격).
-DATA_PATH = "data/주조공정_입력.csv"
-SPLIT_PATH = "분할표.csv"
-LABEL_PATH = "정답_train.csv"
+# 파일 경로. 이 파일(preprocess.py)이 있는 학생배포/ 폴더 기준의 상대경로라서
+# 어느 폴더에서 실행해도 읽힌다 (C:\Users\... 같은 절대경로를 직접 쓰면 실격).
+_HERE = Path(__file__).resolve().parent
+DATA_PATH = _HERE / "data" / "주조공정_입력.csv"
+SPLIT_PATH = _HERE / "분할표.csv"
+LABEL_PATH = _HERE / "정답_train.csv"
 
 # 설명서 규칙: 식별 열은 특징으로 쓰지 않는다 (shot_id는 정렬·키 용도로만)
 ID_COLS = ["shot_id", "id", "Shot"]

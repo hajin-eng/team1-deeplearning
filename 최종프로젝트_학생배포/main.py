@@ -1,9 +1,9 @@
 """
-2조 - 다이캐스팅 불량유형 예측
+1조 - 다이캐스팅 불량유형 예측
 포스코 K-뉴딜아카데미 딥러닝 최종 프로젝트
 
 실행 방법: 학생배포 폴더에서  python main.py
-결과 파일: 제출_2조.csv
+결과 파일: 제출_1조.csv
 """
 
 # ============================================================
@@ -29,6 +29,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 
+import preprocess  # 데이터 파트 전처리 (경로·그룹 계산에 사용)
 from preprocess import load_data  # 데이터 파트 전처리 (2~3단계)
 
 
@@ -36,7 +37,7 @@ from preprocess import load_data  # 데이터 파트 전처리 (2~3단계)
 # 1. 설정 (현장 수정 요청이 오면 주로 여기를 고친다)
 # ============================================================
 SEED = 42
-TEAM_NAME = "2조"
+TEAM_NAME = "1조"
 
 BASE_DIR = Path(__file__).resolve().parent  # main.py가 있는 폴더
 SUBMIT_PATH = BASE_DIR / f"제출_{TEAM_NAME}.csv"
@@ -62,12 +63,14 @@ CLASS_WEIGHT_POWER = (
     0.5  # 소수 클래스 가중치 강도 (0 = 끔, 1 = balanced 그대로, 0.5 = 그 중간)
 )
 
-MODEL_NAME = "rf"  # 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트), "hgb" (HistGradientBoosting), "rf_et" (랜덤포레스트 + ExtraTrees 확률 평균), "rf_et_2stage" (rf_et + 두 단계 모델 혼합)
+MODEL_NAME = "rf_et_2stage"  # 최종 모델(H안). 사용할 모델: "logistic" (로지스틱 회귀), "rf" (랜덤포레스트 = E안), "hgb" (HistGradientBoosting), "rf_et" (랜덤포레스트 + ExtraTrees 확률 평균), "rf_et_2stage" (rf_et + 두 단계 모델 혼합)
 MAX_ITER = 1000  # [로지스틱] 학습 반복 최대 횟수 (기본 100회로는 학습이 덜 끝남)
 RF_N_TREES = 300  # [RF] 나무 수 (많을수록 안정적이지만 느림)
 RF_MIN_LEAF = 1  # [RF] 잎 하나에 있어야 할 최소 샷 수 (클수록 덜 외움, 1 = 기본값 = E안)
 RF_MAX_FEATURES = "sqrt"  # [RF] 질문 하나를 고를 때 보는 열의 수 ("sqrt" = 기본 = E안, 0.5 = 열의 절반)
 RFET_N_TREES = 900  # [rf_et] 랜덤포레스트와 ExtraTrees 각각의 나무 수
+NEIGHBOR_FEATURES = True  # True면 앞뒤 이벤트의 입력값을 특징으로 추가한다 (최종 H안 = rf_et_2stage + 이 설정)
+ALERT_NORMAL_SCALE = 1.0  # 경보 기준: 정상 확률에 곱하는 값 (1.0 = 기본, 0.8처럼 줄이면 불량 판정이 늘어 탐지↑·헛경보↑, 1.25처럼 키우면 반대)
 HGB_MAX_LEAF_NODES = 15  # [HGB] 나무 하나의 잎 최대 개수 (데이터 파트 추천 설정 B)
 HGB_LEARNING_RATE = 0.05  # [HGB] 앞 나무의 오답을 한 번에 얼마나 고칠지 (설정 B)
 HGB_MAX_ITER = 100  # [HGB] 나무 수 (설정 B)
@@ -90,6 +93,42 @@ def set_seed(seed):
         torch.manual_seed(seed)
     except ImportError:
         pass  # torch는 MLP 단계부터 사용한다
+
+
+def add_neighbor_features(data):
+    """[3단계 보강] 앞뒤 이벤트의 입력값을 특징으로 추가한다 (H안).
+
+    - 이벤트 = 바로 앞 행과 입력이 같은 쌍둥이 행들의 묶음. 묶음 안의 행은 입력이 같으므로
+      새 특징도 똑같다 (쌍둥이를 알아보는 능력을 깨지 않으려고 행 단위가 아닌 이벤트 단위로 만든다).
+    - 새 특징 = 직전 이벤트와 직후 이벤트의 공정·센서 값 (표시 열과 Product_Type 제외).
+    - 입력값만 사용한다. 정답(label)에서 나온 값은 쓰지 않고, shot_id는 정렬에만 쓰며
+      shot_id 숫자나 행 순번은 특징에 넣지 않는다.
+    """
+    raw = preprocess.load_raw()  # shot_id 순서
+    feat, _ = preprocess.feature_cols(raw)
+    split = pd.read_csv(preprocess.SPLIT_PATH, encoding="utf-8-sig").set_index("shot_id")["split"]
+    ids_train = raw.loc[raw["shot_id"].map(split) == "train", "shot_id"].values
+    X_train, X_test = data["X_train"].copy(), data["X_test"].copy()
+    assert len(ids_train) == len(X_train), "train 행 수가 다름"
+    X_train.index = ids_train
+    X_test.index = data["test_ids"].values
+    full = pd.concat([X_train, X_test]).sort_index()  # 정렬에만 shot_id를 쓴다
+
+    group = pd.Series(preprocess.make_groups(raw, feat), index=raw["shot_id"].values)
+    assert (group.index == full.index).all(), "정렬 순서가 다름"
+    cols = [c for c in full.columns if c not in preprocess.FLAG_COLS and c != "Product_Type"]
+    events = full.groupby(group.values, sort=True).first()[cols]  # 이벤트 표 (생산 순서)
+    before = events.shift(1).fillna(events).add_suffix("_prevE")  # 직전 이벤트 (처음이면 자기 자신)
+    after = events.shift(-1).fillna(events).add_suffix("_nextE")  # 직후 이벤트 (끝이면 자기 자신)
+    neighbors = pd.concat([before, after], axis=1)
+    rows = neighbors.loc[group.values].set_axis(full.index, axis=0)  # 행으로 되돌림: 쌍둥이는 같은 값
+    enriched = pd.concat([full, rows], axis=1)
+
+    data = dict(data)
+    data["X_train"] = enriched.loc[ids_train].reset_index(drop=True)
+    data["X_test"] = enriched.loc[data["test_ids"].values].reset_index(drop=True)
+    print(f"[3단계 보강] 앞뒤 이벤트 입력값 추가: 피처 {X_train.shape[1]}개 → {data['X_train'].shape[1]}개 (이벤트 {len(events)}개)")
+    return data
 
 
 def check_data(data):
@@ -146,6 +185,15 @@ def split_validation(y, groups):
     return folds
 
 
+def predict_labels(model, X):
+    """예측 라벨을 만든다. ALERT_NORMAL_SCALE이 1.0이 아니면 정상 확률에 곱한 뒤 가장 큰 클래스를 고른다."""
+    if ALERT_NORMAL_SCALE == 1.0:
+        return model.predict(X)
+    proba = model.predict_proba(X).copy()
+    proba[:, list(model.classes_).index("정상")] *= ALERT_NORMAL_SCALE
+    return np.asarray(model.classes_)[proba.argmax(axis=1)]
+
+
 def cross_validate(X, y, folds):
     """[5~6단계] 5쌍을 돌며 학습·예측하고, 검증 예측을 하나로 모은다.
 
@@ -157,7 +205,7 @@ def cross_validate(X, y, folds):
         y_fit = y.loc[fit_idx]
         model = build_model(y_fit)
         model.fit(X.loc[fit_idx], y_fit)
-        pred = model.predict(X.loc[valid_idx])
+        pred = predict_labels(model, X.loc[valid_idx])
         oof_pred.loc[valid_idx] = pred
 
         score = f1_score(
@@ -382,12 +430,27 @@ def evaluate(y_true, y_pred):
     cm_table = pd.DataFrame(cm, index=short, columns=short)
     print("혼동행렬 (행 = 실제, 열 = 예측)")
     print(cm_table.to_string())
+
+    # 현장 언어 요약: 불량 몇 건 중 몇 건을 잡았고, 정상 몇 건을 불량이라 했는가
+    normal_pos = LABELS.index("정상")
+    bad_total = cm.sum() - cm[normal_pos].sum()
+    caught = bad_total - cm[:, normal_pos].sum() + cm[normal_pos, normal_pos]
+    false_alarm = cm[normal_pos].sum() - cm[normal_pos, normal_pos]
+    accuracy = np.trace(cm) / cm.sum()
+    print(
+        f"불량 {bad_total}건 중 {caught}건 탐지 (불량 탐지율 {caught / bad_total:.1%}), "
+        f"정상 {cm[normal_pos].sum()}건 중 {false_alarm}건을 불량이라 함 (헛경보), 정확도 {accuracy:.1%}"
+    )
+    print(
+        "※ 이 검증은 쌍둥이를 같은 조각에 묶어 '처음 보는 입력'만 평가한다. "
+        "리더보드(쌍둥이가 train에 있는 샷이 58%)보다 점수가 낮게 나오는 것이 정상이다."
+    )
     return score
 
 
 def make_submission(model, X_test, test_ids):
     """[7단계] 제출용 예측 표를 만든다."""
-    pred = model.predict(X_test)
+    pred = predict_labels(model, X_test)
     sub = pd.DataFrame({"shot_id": test_ids.values, TARGET_COL: pred})
     return sub
 
@@ -417,6 +480,8 @@ def main():
     set_seed(SEED)
 
     data = load_data(drop_cols=DROP_COLS)  # 2~3단계 (데이터 파트 preprocess.py)
+    if NEIGHBOR_FEATURES:
+        data = add_neighbor_features(data)  # 3단계 보강 (H안)
     check_data(data)
     X_train, y_train = data["X_train"], data["y_train"]
     folds = split_validation(y_train, data["groups_train"])  # 4단계
