@@ -12,6 +12,13 @@ src = (DIR / "보고서_1조.html").read_text(encoding="utf-8")
 title = re.search(r"<h1>(.*?)</h1>", src, re.S).group(1)
 sub = re.search(r'<div class="sub">(.*?)</div>', src, re.S).group(1)
 metrics = re.findall(r'<div class="card"><div class="n">(.*?)</div><div class="l">(.*?)</div></div>', src, re.S)
+# 웹 첫 화면용 지표: 결과·원인·검증·운영 순으로 보고서 전체 흐름을 요약. 한계 수치는 요약·4·6절에 그대로 있다.
+metrics = [
+    ("0.5987", "[결과] 중간 리더보드 실제 점수<br>(공개 기준선 0.2517)"),
+    ("15.8→5.3%", "[원인] 유형 2 Short_Shot 불량률<br>(속도 관리 후보 구간 안·밖)"),
+    ("2중 검증", "[검증] 새 입력 · 새 생산 구간<br>따로 떼어 평가"),
+    ("×0.1", "[운영] 경보 기준, 전수 검사 대비<br>5:1 −24% · 10:1 −9%"),
+]
 
 body = src.split('</div></div>\n', 1)[1] if False else src[src.index("<h2>"):src.rindex("</body>")]
 cards_end = src.index("</div>\n<ul>") if "</div>\n<ul>" in src else -1
