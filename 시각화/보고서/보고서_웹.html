@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주조 불량 유형 예측 | 1조 보고서</title>
+<style>
+:root{--bg:#090f1c;--surface:#111b2c;--surface-2:#17243a;--border:#2b3c54;--text:#edf3fb;--muted:#a9bad0;--accent:#72b8ff;--mint:#79e2c1;--yellow:#f2ca82;--side:272px;--side-bg:#0c1424;--prose:#d7e1ee;--strong:#fff;--num:#5f7391;--on-accent:#08101d;--metric-bg:rgba(17,27,44,.85);--glow:rgba(43,113,186,.22);--hl:rgba(114,184,255,.22);--warn-t:#f6e3bd;--msg-t:#e7eefb;--hover:rgba(114,184,255,.07)}
+:root[data-theme=light]{--bg:#f6f8fb;--surface:#fff;--surface-2:#edf2f8;--border:#d5dee9;--text:#172033;--muted:#566680;--accent:#1d6fd6;--mint:#0c8a68;--yellow:#b7791f;--side-bg:#fff;--prose:#2a364b;--strong:#0b1424;--num:#8a99ae;--on-accent:#fff;--metric-bg:#fff;--glow:rgba(29,111,214,.10);--hl:rgba(29,111,214,.16);--warn-t:#6b4a0c;--msg-t:#1d2a40;--hover:rgba(29,111,214,.05)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",-apple-system,"Segoe UI",sans-serif;line-height:1.9;word-break:keep-all}
+a{color:inherit;text-decoration:none}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--side);background:var(--side-bg);border-right:1px solid var(--border);padding:26px 16px 22px;overflow-y:auto;display:flex;flex-direction:column;z-index:50}
+.brand{font-weight:800;letter-spacing:-.04em;font-size:1.02rem;padding:0 10px}.brand span{color:var(--accent)}.brand small{display:block;margin-top:4px;color:var(--muted);font-weight:500;font-size:.78rem;letter-spacing:0}
+.side-label{margin:26px 10px 8px;color:var(--muted);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.sidebar nav a{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:9px;color:var(--muted);font-size:.92rem;line-height:1.4;transition:.15s}
+.sidebar nav a .num{color:var(--num);font-size:.76rem;font-weight:700;min-width:20px}
+.sidebar nav a:hover{background:var(--surface);color:var(--text)}
+.sidebar nav a.on{background:rgba(114,184,255,.14);color:var(--strong);font-weight:700}.sidebar nav a.on .num{color:var(--accent)}
+.side-links{margin-top:auto;padding:20px 10px 0;display:flex;flex-direction:column;gap:8px;font-size:.84rem;color:var(--muted)}.side-links a:hover{color:var(--accent)}
+main{margin-left:var(--side);padding:56px clamp(24px,5vw,72px) 90px;max-width:calc(var(--side) + 1100px)}
+.page{display:none}.page.on{display:block}
+.hero{padding:6px 0 44px;margin-bottom:38px;border-bottom:1px solid var(--border);background:radial-gradient(ellipse at 80% 0%,var(--glow),transparent 55%)}
+.eyebrow{display:inline-block;color:var(--mint);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+h1,h2,h3{line-height:1.35;letter-spacing:-.045em}h1{margin:18px 0;font-size:clamp(2.1rem,4.6vw,3.6rem);font-weight:850}h1 .hl{color:var(--accent)}
+.hero-description{max-width:760px;color:var(--muted);font-size:1rem;margin:0}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:34px}
+.metric{padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--metric-bg)}
+.metric-label{display:block;color:var(--muted);font-size:.8rem;line-height:1.5}.metric-value{display:block;margin-top:8px;color:var(--accent);font-size:clamp(1.4rem,2.6vw,2rem);font-weight:800;line-height:1.3}
+.pagehead{margin-bottom:26px}.section-title{margin:8px 0 0;font-size:clamp(1.7rem,3.4vw,2.4rem)}
+.hero,.pagehead,.calc,.prose,.pager{max-width:920px}
+td:first-child{font-weight:600;color:var(--strong)}tbody tr:hover td{background:var(--hover)}
+figure{cursor:zoom-in}
+.progress{position:fixed;left:0;top:0;height:3px;width:0;background:var(--accent);z-index:99;transition:width .1s}
+.lightbox{position:fixed;inset:0;background:rgba(5,9,16,.86);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out;padding:24px}
+.lightbox.on{display:flex}.lightbox img{max-width:96vw;max-height:94vh;background:#fff;border-radius:10px;padding:10px}
+.themebtn{margin:22px 10px 0;align-self:flex-start;padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--muted);font:inherit;font-size:.82rem;cursor:pointer;text-align:left}
+.themebtn:hover{color:var(--accent);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media print{.sidebar,.pager,.progress,.themebtn{display:none}.page{display:block!important;page-break-before:always}main{margin:0}}
+.prose p,.prose li{color:var(--prose);font-size:1.03rem}
+.prose p{margin:0 0 22px}.sn{display:block;margin-bottom:.6em}.prose li .sn:last-child,.prose p .sn:last-child{margin-bottom:0}
+.prose ul{padding-left:0;list-style:none;margin:0 0 20px}.prose li{position:relative;padding-left:22px;margin-bottom:16px}
+.prose li::before{content:"";position:absolute;left:3px;top:.78em;width:7px;height:7px;border-radius:50%;background:var(--mint)}
+.prose ul.summary li{padding:16px 20px 16px 38px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px}
+.prose ul.summary li::before{left:18px;top:1.3em}
+b{color:var(--strong);font-weight:700}.prose b{background:linear-gradient(transparent 62%,var(--hl) 62%)}
+code{background:var(--surface-2);color:var(--mint);padding:1px 7px;border-radius:5px;font-size:.88em}u{text-decoration-color:var(--yellow);text-underline-offset:3px}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;margin:10px 0 28px}
+table{width:100%;border-collapse:collapse;background:var(--surface);min-width:560px}
+th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);font-size:.9rem;line-height:1.65;color:var(--prose);font-variant-numeric:tabular-nums}
+th{color:var(--muted);background:var(--surface-2);font-weight:650}tr:last-child td{border-bottom:0}
+figure{margin:14px 0 30px;max-width:900px}figure img{display:block;width:100%;background:#fff;border-radius:12px;padding:10px;border:1px solid var(--border)}
+figcaption{margin-top:12px;color:var(--muted);font-size:.86rem;line-height:1.7}
+.card{padding:24px 28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;margin:16px 0}
+.card.warn{border-color:rgba(242,202,130,.55);background:rgba(242,202,130,.06)}.card.warn li,.card.warn b{color:var(--warn-t)}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:56px;padding-top:26px;border-top:1px solid var(--border)}
+.pager button{flex:1;max-width:340px;padding:14px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font:inherit;font-size:.92rem;cursor:pointer;text-align:left;transition:.15s}
+.pager button:hover{border-color:var(--accent);transform:translateY(-2px)}.pager .next{text-align:right;margin-left:auto}.pager small{display:block;color:var(--muted);font-size:.74rem}
+@media(max-width:900px){.sidebar{position:static;width:auto;border-right:0;border-bottom:1px solid var(--border);padding:16px}.sidebar nav{display:grid;grid-template-columns:repeat(2,1fr);gap:2px}.side-links{flex-direction:row;padding-top:14px}main{margin-left:0;padding:34px 20px 70px}.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.metrics{grid-template-columns:1fr}}
+
+.calc{border:1px solid var(--accent);background:var(--hover);border-radius:16px;padding:24px 28px;margin:0 0 30px}
+.calc h3{margin:0 0 4px;font-size:1.15rem}.calc .hint{color:var(--muted);font-size:.85rem;margin-bottom:16px}
+.calc .row{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:12px 0}
+.calc .lbl{color:var(--muted);font-size:.82rem;min-width:84px}
+.tabs{display:inline-flex;gap:6px;flex-wrap:wrap}.tab{padding:7px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font:inherit;font-size:.88rem;cursor:pointer}
+.tab.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+.calc input[type=range]{width:260px;accent-color:var(--accent)}
+.calc input[type=number]{width:96px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+.big{color:var(--accent);font-weight:800;font-size:1.2rem}
+.calc table{min-width:620px}.calc tr.best td{background:rgba(121,226,193,.12)}.calc tr.best td:first-child{border-left:3px solid var(--mint)}
+.bar{display:inline-block;height:9px;border-radius:5px;background:var(--accent);vertical-align:middle;margin-right:8px;min-width:2px}
+.calc .msg{margin-top:14px;padding:12px 16px;border-radius:10px;background:var(--surface-2);font-size:.93rem;color:var(--msg-t)}
+
+.take{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 24px;max-width:920px}
+.take>div{flex:1;min-width:190px;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.take .n{display:block;font-size:1.7rem;font-weight:800;color:var(--accent);line-height:1.25}
+.take .t{display:block;margin-top:4px;font-size:.84rem;color:var(--muted);line-height:1.6}
+.take .good .n{color:var(--mint)}.take .bad .n{color:#e5684b}.take .mid .n{color:var(--yellow)}
+.verdict{max-width:920px;margin:0 0 24px;padding:16px 20px;border-left:4px solid var(--accent);background:var(--hover);border-radius:0 12px 12px 0;font-size:1.02rem;color:var(--strong);line-height:1.75}
+.bchart{max-width:920px;border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:22px 26px 14px;margin:0 0 26px}
+.bchart h4{margin:0 0 4px;font-size:1.05rem;letter-spacing:-.03em}
+.bchart .sub{color:var(--muted);font-size:.84rem;line-height:1.65;margin-bottom:12px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:0 0 6px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.brow{display:grid;grid-template-columns:170px 1fr;gap:4px 18px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+.brow .bl{font-size:.9rem;color:var(--strong);font-weight:650;line-height:1.5}.brow .bl small{display:block;font-weight:400;color:var(--muted);font-size:.74rem}
+.bar2{display:flex;align-items:center;gap:9px;margin:3px 0}.bar2 i{display:block;height:15px;border-radius:4px;min-width:3px}
+.bar2 span{font-size:.82rem;font-variant-numeric:tabular-nums;color:var(--prose);white-space:nowrap}
+.c1{background:var(--accent)}.c2{background:var(--yellow)}.c3{background:#8793a6}.c4{background:var(--mint)}.c5{background:#e5684b}
+.div{position:relative;height:22px;margin:3px 0;background:var(--surface-2);border-radius:6px}
+.div .band{position:absolute;top:0;bottom:0;background:rgba(150,160,180,.20);border-radius:4px}
+.div .zero{position:absolute;top:-2px;bottom:-2px;left:50%;width:2px;background:var(--muted)}
+.div i{position:absolute;top:4px;height:14px;border-radius:3px}
+.div span{position:absolute;top:2px;font-size:.78rem;font-variant-numeric:tabular-nums;color:var(--strong);font-weight:650}
+.fold{max-width:920px;margin:6px 0 20px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.fold>summary{cursor:pointer;padding:14px 20px;font-weight:650;color:var(--strong);list-style:none;display:flex;justify-content:space-between;gap:10px}
+.fold>summary::after{content:"\25BC  \D3BC\CE58\AE30";color:var(--accent);font-size:.82rem;font-weight:500;white-space:nowrap}
+.fold[open]>summary::after{content:"\25B2  \C811\AE30"}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>.inner{padding:2px 20px 14px}.fold>.inner .prose{max-width:none}
+.chartbox{margin:6px 0 18px}.chartbox svg{display:block;width:100%;height:auto}
+.chartbox text{font-family:inherit;fill:var(--muted);font-size:11px}.chartbox .val{fill:var(--strong);font-weight:700;font-size:11.5px}
+@media(max-width:700px){.brow{grid-template-columns:1fr}}
+
+/* 6·7·8절 가독성 보강 (2026-10-28 수정본) — 기존 색·간격 토큰만 사용 */
+.take-cap{max-width:920px;margin:0 0 8px;color:var(--muted);font-size:.84rem}
+.take .k{display:block;margin-bottom:2px;color:var(--muted);font-size:.78rem;font-weight:700;line-height:1.5}
+.subh{max-width:920px;margin:30px 0 8px;font-size:1.05rem;letter-spacing:-.03em;color:var(--strong)}
+th small{display:block;font-weight:400;font-size:.74rem;color:var(--muted)}
+table.num th:not(:first-child),table.num td:not(:first-child){text-align:right}
+table.num th.l,table.num td.l{text-align:left}
+td.hot{background:rgba(242,202,130,.08)}th.hot{box-shadow:inset 0 3px 0 var(--yellow)}
+tr.op td{background:var(--hl)}tr.op td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.tag{display:inline-block;margin-left:6px;padding:0 7px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:.72rem;font-weight:700;line-height:1.6;vertical-align:1px}
+.calc .steps{display:flex;flex-wrap:wrap;gap:6px 24px;margin:0 0 14px;padding:0;list-style:none;font-size:.88rem;color:var(--prose);line-height:1.6}
+.calc .steps b{color:var(--accent);margin-right:8px}
+.calc .inputs{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:4px 18px}
+.calc .row .lbl:first-child{min-width:112px;color:var(--text);font-weight:650}
+.calc .note{color:var(--muted);font-size:.8rem}
+.calc .msg{margin:16px 0 8px;padding:14px 18px;border-left:4px solid var(--mint);border-radius:0 10px 10px 0;line-height:1.6}
+.calc .msg .rlab{display:block;color:var(--muted);font-size:.78rem}
+.calc .msg .rmain{display:block;margin:2px 0 4px;color:var(--strong);font-size:1.12rem;font-weight:700}
+.calc .msg .rmain b{background:linear-gradient(transparent 62%,var(--hl) 62%)}
+.calc .msg .rsub{display:block;color:var(--msg-t);font-size:.86rem}
+.calc .foot{margin-top:4px;color:var(--muted);font-size:.8rem;line-height:1.6}
+.cmp .brow{grid-template-columns:250px 1fr}
+.cmp .bl small{font-size:.84rem;color:var(--prose)}
+.cmp .bl .dir{margin-top:2px;font-size:.76rem;color:var(--muted)}
+.cmp .bl .dir::before{content:"\25BC  ";color:var(--mint)}.cmp .bl .dir.up::before{content:"\25B2  ";color:#e5684b}
+.chip{display:inline-block;margin-left:6px;padding:0 7px;border:1px solid var(--border);border-radius:6px;font-style:normal;font-size:.72rem;font-weight:600;color:var(--muted);vertical-align:1px}
+.v{display:grid;grid-template-columns:2em 1fr 9.4em;align-items:center;gap:10px;margin:4px 0}
+.v>em{font-style:normal;font-size:.78rem;color:var(--muted)}
+.v .trk{height:14px;border-radius:4px;background:var(--surface-2)}.v .trk i{display:block;height:100%;border-radius:4px;min-width:3px}
+.v span{text-align:right;font-size:.88rem;font-variant-numeric:tabular-nums;color:var(--prose);white-space:nowrap}
+.v span b{color:var(--strong)}.v span small{margin-left:4px;color:var(--muted);font-size:.74rem}
+.card ul{margin:12px 0 0}
+.calc .cv{display:inline-block;min-width:4.6em;margin-right:10px;text-align:right}
+@media(max-width:700px){.cmp .brow{grid-template-columns:1fr}}
+@media(max-width:520px){.calc{padding:18px 14px}.calc .inputs{padding:2px 12px}.calc input[type=range]{width:100%}.calc table{min-width:0}.calc th,.calc td{padding:9px 6px;font-size:.78rem}.calc .bar{display:none}.chartbox{overflow-x:auto}.chartbox svg{min-width:540px}.take .n{font-size:1.45rem}.v{grid-template-columns:1.6em 1fr 8.6em;gap:6px}}
+
+/* 2차: 넓은 화면 배치 · 하단 넘김 바 · 안내 투어 — 기존 토큰만 사용 */
+:root{--wrap:1480px;--read:48em;--fig:1240px}
+main{max-width:none;padding-bottom:130px}
+.hero,.pagehead,.calc,.prose,.take,.take-cap,.verdict,.bchart,.fold,.subh,.row2,.lead{max-width:var(--wrap)}
+figure{max-width:var(--fig)}
+.prose p,.prose li{max-width:var(--read)}.prose ul.summary li{max-width:none}
+@media(min-width:1400px){
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 32px;align-items:start;margin:0 0 28px}
+.row2>*,.prose .row2>*{margin:0;min-width:0}.row2.wide-l{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}.row2.fig-r{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}.row2 table{min-width:0}
+.lead{display:grid;grid-template-columns:minmax(280px,.34fr) minmax(0,1fr);gap:24px;align-items:stretch;margin:0 0 26px}
+.lead-l{display:flex;flex-direction:column}.lead-l .take{flex:1;flex-direction:column;flex-wrap:nowrap;margin:0}
+.lead-l .take>div{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}.lead>.bchart{margin:0}
+.prose ul.cols{columns:2;column-gap:32px}.prose ul.cols>li{break-inside:avoid}
+.cgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}.cgrid .chartbox{margin:0}.cgrid input[type=range]{width:min(260px,100%)}
+}
+.pnav{position:fixed;left:var(--side);right:0;bottom:18px;z-index:60;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.pnav-in{position:relative;pointer-events:auto;width:100%;max-width:720px;height:52px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:0 6px;border:1px solid var(--border);border:1px solid color-mix(in srgb,var(--border) 75%,transparent);border-radius:999px;background:var(--surface);background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(12px) saturate(1.2);backdrop-filter:blur(12px) saturate(1.2);box-shadow:0 10px 30px rgba(0,0,0,.28)}
+:root[data-theme=light] .pnav-in{box-shadow:0 8px 24px rgba(23,32,51,.12)}
+.pnav button{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;height:40px;padding:0 14px;border:0;border-radius:999px;background:none;color:var(--muted);font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .15s,color .15s,filter .15s}
+.pnav button i{flex:none;font-style:normal}.pn-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pn-prev{justify-self:start}.pnav .pn-prev:hover:not(:disabled){background:var(--hover);color:var(--text)}
+.pnav .pn-next{justify-self:end;background:var(--accent);color:var(--on-accent);font-weight:700}.pnav .pn-next:hover:not(:disabled){filter:brightness(1.08)}
+.pnav button:disabled{opacity:.4;cursor:default}.pnav .pn-next:disabled{background:none;color:var(--muted)}
+.pn-mid{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:150px}
+.pn-pos{color:var(--strong);font-size:.86rem;font-weight:700;line-height:1.2;white-space:nowrap}.pn-pos b{margin-right:6px;color:var(--accent);font-variant-numeric:tabular-nums}.pn-of{display:none}
+.pn-bar{display:block;width:120px;height:3px;border-radius:2px;background:var(--border);overflow:hidden}.pn-bar i{display:block;height:100%;border-radius:2px;background:var(--accent);transition:width .25s ease}
+.pn-key{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);font-size:.72rem;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none}
+.pnav-in:hover .pn-key{opacity:1}
+@media(max-width:900px){.pnav{left:0;bottom:12px;padding:0 12px}main{padding-bottom:100px}}
+@media(max-width:520px){.pn-t,.pn-name,.pn-key{display:none}.pn-of{display:inline}.pnav button{justify-content:center;width:44px;padding:0}.pn-mid{min-width:0}.pn-bar{width:72px}}
+.themebtn.guidebtn{display:flex;align-items:center;gap:8px;margin-top:8px}.guidebtn svg{flex:none;width:22px;height:22px}
+.tour-ov{position:fixed;inset:0;z-index:300;background:rgba(5,9,16,.55);-webkit-backdrop-filter:blur(2.5px);backdrop-filter:blur(2.5px)}
+:root[data-theme=light] .tour-ov{background:rgba(16,26,46,.4)}
+.tour-veil{position:fixed;z-index:300;pointer-events:none;background:rgba(5,9,16,.55);-webkit-backdrop-filter:blur(2.5px);backdrop-filter:blur(2.5px)}
+:root[data-theme=light] .tour-veil{background:rgba(16,26,46,.4)}
+.tour-ring{position:fixed;z-index:301;box-sizing:border-box;border:2px solid var(--accent);pointer-events:auto}
+:root{--tb-bg:#0e1726;--tb-line:rgba(169,186,208,.16);--tb-tx:#d3ddea}:root[data-theme=light]{--tb-bg:#f1f4f8;--tb-line:#d0d9e4;--tb-tx:#2a364b}
+.tour-bub{position:fixed;z-index:302;width:320px;max-width:calc(100vw - 40px);padding:16px 18px 12px;border:1px solid var(--tb-line);border-radius:14px;background:var(--tb-bg);color:var(--tb-tx);box-shadow:0 12px 32px rgba(0,0,0,.3)}
+:root[data-theme=light] .tour-bub{box-shadow:0 10px 28px rgba(23,32,51,.14)}
+.tour-tail{position:absolute;width:12px;height:12px;border:0 solid var(--tb-line);background:var(--tb-bg);transform:rotate(45deg)}
+.tour-bub[data-tail=up] .tour-tail{top:-7px;border-top-width:1px;border-left-width:1px}.tour-bub[data-tail=down] .tour-tail{bottom:-7px;border-bottom-width:1px;border-right-width:1px}
+.tour-bub[data-tail=left] .tour-tail{left:-7px;border-bottom-width:1px;border-left-width:1px}.tour-bub[data-tail=right] .tour-tail{right:-7px;border-top-width:1px;border-right-width:1px}
+.tour-bub[data-tail=none] .tour-tail{display:none}
+.tour-av{position:absolute;left:-20px;top:-36px;width:64px;height:64px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
+.tour-hd{display:flex;align-items:baseline;gap:8px;min-height:20px;margin:0 0 8px 50px}
+.tour-hd b{color:var(--tb-tx);font-size:.8rem}.tour-hd small{color:var(--muted);font-size:.74rem}
+.tour-dots{display:flex;align-self:center;gap:4px;margin-left:auto}.tour-dots i{width:6px;height:6px;border-radius:3px;background:var(--border);transition:width .2s,background .2s}.tour-dots i.on{width:16px;background:var(--accent)}
+.tour-tx{margin:0 0 14px;color:var(--tb-tx);font-size:.94rem;line-height:1.75}
+.tour-ft{display:flex;align-items:center;gap:6px}
+.tour-ft .t-skip{margin-right:auto;padding:8px 2px;border:0;background:none;color:var(--muted);font:inherit;font-size:.82rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.tour-ft .t-skip:hover{color:var(--text)}
+.tour-ft .t-prev,.tour-ft .t-next{height:36px;padding:0 15px;border-radius:999px;font:inherit;font-size:.86rem;font-weight:650;cursor:pointer}
+.tour-ft .t-prev{border:1px solid var(--tb-line);background:none;color:var(--tb-tx)}.tour-ft .t-prev:disabled{opacity:.35;cursor:default}
+.tour-ft .t-next{border:1px solid var(--accent);background:var(--accent);color:var(--on-accent)}
+@media(max-width:520px){.tour-ft .t-prev,.tour-ft .t-next{height:44px}}
+@media(prefers-reduced-motion:reduce){.pn-bar i,.tour-dots i{transition:none}}
+@media print{.pnav,.tour-ov,.tour-veil,.tour-ring,.tour-bub,.guidebtn{display:none}}
+
+@media(min-width:901px){main{padding-bottom:88px}.brow{padding:7px 0}.bchart{padding:16px 22px 10px}.bchart .sub{margin-bottom:8px}.cmp .v{margin:2px 0}.take>div{padding:12px 16px}
+.calc .lbl small{display:block;font-weight:400}.calc .row{gap:8px 14px}.cg-r .msg{margin:0 0 10px}}
+@media(min-width:1400px){.cgrid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}.cgrid input[type=range]{width:120px}.cgrid .chartbox svg{max-height:200px}.cgrid .row .lbl:first-child{min-width:96px}.cgrid .tab{padding:5px 12px}.calc{padding:14px 20px}.cmp .brow{grid-template-columns:330px 1fr}.cmp .bl small{display:inline-block}.cmp .bl .dir{margin-left:10px}}
+@media(min-width:901px) and (max-height:940px){main{padding-top:20px;padding-bottom:84px}.section-title{margin-top:2px;line-height:1.25}.pagehead{margin-bottom:12px}.verdict{padding:12px 18px;margin-bottom:12px}.take,.bchart{margin-bottom:12px}.take>div{padding:10px 14px}.calc .steps{margin-bottom:6px}.calc h3{margin-bottom:2px}.ckrow{margin-top:10px}.cgrid .chartbox svg{max-height:176px}.cg-r .msg{padding:10px 14px}.calc .row{margin:4px 0}}
+
+/* 5차: 한 화면 배치 · 확인하기 모달 · 사이드바 아이콘 */
+@media(min-width:901px){main{padding-top:28px}.pagehead{margin-bottom:14px}.hero{padding:0 0 22px;margin-bottom:18px}.metrics{margin-top:22px}
+.take,.verdict,.bchart{margin-bottom:16px}.calc{padding:18px 22px;margin-bottom:0}.calc .hint{margin-bottom:8px}.calc .steps{margin-bottom:10px}.calc .row{margin:6px 0}.calc .inputs{padding:4px 14px}.calc .msg{margin:10px 0 0}.tab{padding:5px 14px}}
+.ckrow{display:flex;flex-wrap:wrap;gap:8px;max-width:var(--wrap);margin:14px 0 0}
+.ck{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
+.ck::after{content:"";width:6px;height:6px;border-top:1.5px solid currentColor;border-right:1.5px solid currentColor;transform:rotate(45deg);opacity:.6}
+.ck:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:520px){.ck{height:40px}}
+.mdl{width:min(880px,calc(100vw - 32px));max-height:min(86vh,920px);padding:0;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden}
+:root[data-theme=light] .mdl{box-shadow:0 20px 50px rgba(23,32,51,.2)}
+.mdl[open]{display:flex;flex-direction:column}
+.mdl::backdrop{background:rgba(5,9,16,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+:root[data-theme=light] .mdl::backdrop{background:rgba(16,26,46,.4)}
+.mdl-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 0 24px}
+.mdl-k{color:var(--mint);font-size:.74rem;font-weight:700;letter-spacing:.08em}
+.mdl-x{width:36px;height:36px;border:1px solid var(--border);border-radius:999px;background:none;color:var(--muted);font:inherit;font-size:1.3rem;line-height:1;cursor:pointer}.mdl-x:hover{color:var(--text);border-color:var(--accent)}
+.mdl-bd{flex:1;min-height:0;overflow:auto;padding:2px 24px 24px;overscroll-behavior:contain}
+.mdl-t{margin:2px 0 16px;color:var(--strong);font-size:1.25rem;letter-spacing:-.03em}
+.mdl .prose,.mdl .bchart,.mdl .row2,.mdl figure{max-width:none}.mdl .row2{display:block}.mdl .row2>*{margin:0 0 16px}
+.mdl .calc{border:0;background:none;padding:0;margin:0}
+.side-tools{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.sbtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s}
+.sbtn:hover{color:var(--accent);border-color:var(--accent)}
+.sbtn .ico{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sbtn[data-tip]:hover::after,.sbtn[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);padding:4px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);color:var(--text);font-size:.72rem;font-weight:500;white-space:nowrap;pointer-events:none;z-index:70}
+.slink{padding:0 3px;color:var(--muted);font-size:.74rem;white-space:nowrap}.slink:hover{color:var(--accent)}
+@media print{.ckrow,.mdl{display:none}.mdl-src{display:block!important}}
+
+/* 6차: 00 요약 — 읽는 순서 띠 + 요약 카드 */
+.s0-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;max-width:var(--wrap)}.s0-head .pagehead{margin-bottom:0}.s0-head .ckrow{margin:0 0 4px}
+.flow{display:flex;align-items:stretch;max-width:var(--wrap);margin:14px 0 12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.flow-k{display:flex;align-items:center;padding:0 16px;border-right:1px solid var(--border);color:var(--mint);font-size:.74rem;font-weight:700;letter-spacing:.08em;white-space:nowrap}
+.flow-c,.flow-2 button{position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0;min-height:56px;padding:8px 26px 8px 16px;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.flow-c:not(:last-child)::after{content:"";position:absolute;right:8px;top:50%;width:8px;height:8px;margin-top:-4px;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:rotate(45deg)}
+.flow-c b,.flow-2 b{color:var(--strong);font-size:.86rem;line-height:1.35}.flow-c small,.flow-2 small{color:var(--muted);font-size:.74rem}
+button.flow-c:hover,.flow-2 button:hover{background:var(--hover)}
+.flow-2{flex:1.3;flex-direction:row;padding:0}.flow-2 button{padding-right:12px}.flow-2 button+button{border-left:1px dashed var(--border)}
+.s0-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:var(--wrap)}
+.s0-card{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.s0-card h3{margin:0;color:var(--accent);font-size:.84rem;letter-spacing:-.01em}
+.s0-card p{flex:1;margin:0;color:var(--prose);font-size:.86rem;line-height:1.6}
+.cd-ck{align-self:flex-start;padding:2px 0;border:0;background:none;color:var(--accent);font:inherit;font-size:.78rem;font-weight:600;cursor:pointer}.cd-ck::after{content:" \203A"}.cd-ck:hover{text-decoration:underline}
+.mdl li.flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:10px;transition:outline-color .6s}
+@media(min-width:901px) and (max-height:940px){#s0 h1{margin:8px 0 10px}#s0 .hero{padding-bottom:14px;margin-bottom:12px}#s0 .metrics{margin-top:16px}#s0 .metric{padding:14px 18px}.flow{margin:10px 0}.flow-c,.flow-2 button{min-height:50px}.s0-card{padding:12px 14px;gap:4px}}
+@media(min-height:1000px) and (min-width:901px){.flow{margin:22px 0 18px}.flow-c,.flow-2 button{min-height:72px}.s0-cards{gap:16px}.s0-card{padding:22px 24px;gap:10px}.s0-card h3{font-size:.95rem}.s0-card p{font-size:1rem;line-height:1.75}}
+@media(max-width:900px){.s0-head{flex-direction:column;align-items:flex-start}.flow{flex-wrap:wrap}.flow-k{width:100%;padding:8px 16px;border-right:0;border-bottom:1px solid var(--border)}.flow-c,.flow-2{flex:1 1 45%}.s0-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.s0-cards{grid-template-columns:1fr}.flow-c,.flow-2{flex:1 1 100%}.flow-c::after{display:none}}
+
+/* 8차: 확인하기 = 절마다 책 한 권 · 펼친 책. 글꼴은 페이지와 같다(바꾸지 않음). 그라데이션·흐린 그림자 없이 선과 단색 면만 */
+:root{--paper:#0d1626;--paper-line:#26364f;--spine:#0a1220;--edge1:#1e2c43;--edge2:#141f33}:root[data-theme=light]{--paper:#ffffff;--paper-line:#d5dee9;--spine:#f1f4f8;--edge1:#dfe6ef;--edge2:#eef2f7}
+.mdl{width:fit-content;height:fit-content;max-width:none;max-height:none;padding:0;border:0;background:transparent;box-shadow:none;overflow:visible;color:var(--text)}
+.mdl[open]{display:block}:root[data-theme=light] .mdl{box-shadow:none}
+.bk{position:relative;display:flex;align-items:center;gap:22px;padding:0 4px}
+.bk-book{position:relative;display:flex;perspective:2600px;touch-action:pan-y pinch-zoom}
+.bk-page{position:relative;display:flex;flex-direction:column;width:var(--pw);height:var(--ph);padding:24px 42px 14px;border:1px solid var(--paper-line);background:var(--paper);color:var(--text)}
+.bk.spread .bk-page.l{border-right:0}.bk.spread .bk-page.r{border-left:1px solid var(--paper-line)}
+.bk.spread .bk-page.l::after,.bk.spread .bk-page.r::before{content:"";position:absolute;top:0;bottom:0;width:8px;background:var(--spine)}
+.bk.spread .bk-page.l::after{right:0}.bk.spread .bk-page.r::before{left:0}
+.bk-blank{background:var(--paper)}
+.bk-rh{flex:none;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;height:31px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);color:var(--muted);font-size:.72rem;line-height:22px;letter-spacing:.06em;white-space:nowrap;overflow:hidden}
+.bk-rh span{overflow:hidden;text-overflow:ellipsis}.bk.spread .bk-page.l .rh-s,.bk.spread .bk-page.r .rh-c{display:none}.bk.spread .bk-page.r .bk-rh{justify-content:flex-end}
+.bk-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding-top:16px}
+.bk-main{flex:none}
+.bk-fns{flex:none;margin-top:auto;padding-top:8px;color:var(--muted);font-size:.74rem;line-height:1.55}.bk-fns:empty{display:none}
+.bk-fns::before{content:"";display:block;width:34%;margin-bottom:6px;border-top:1px solid var(--muted)}.bk-fns p{margin:0 0 3px}.bk-fnn{display:inline-block;min-width:1.3em;color:var(--accent)}
+sup.bk-fr{margin-left:1px;color:var(--accent);font-size:.66em;font-weight:700}
+.bk-ft{flex:none;display:flex;align-items:center;gap:12px;height:40px;padding-top:8px;border-top:1px solid var(--paper-line);overflow:hidden}
+.bk-page.r .bk-ft{flex-direction:row-reverse}.bk-no b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}.bk-no small{color:var(--muted);font-size:.72rem}
+.bk-close{height:28px;padding:0 16px;border:1px solid var(--accent);border-radius:999px;background:var(--accent);color:var(--on-accent);font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+.bk-page.l .bk-close{margin-left:auto}.bk-page.r .bk-close{margin-right:auto}
+.bk-op{flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 6px}
+.bk-opk{color:var(--muted);font-size:.78rem;font-weight:700;letter-spacing:.34em}.bk-opn{color:var(--strong);font-size:5rem;font-weight:300;line-height:1.05;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.bk-oprule{width:72px;margin:20px 0 16px;border-top:1px solid var(--strong)}.bk-opt{margin:0 0 34px;color:var(--strong);font-size:2rem;line-height:1.25;letter-spacing:-.05em}
+.bk-tock{margin-bottom:6px;color:var(--mint);font-size:.74rem;font-weight:700;letter-spacing:.2em}
+.bk-toc{margin:0;padding:0;list-style:none;border-top:1px solid var(--paper-line)}
+.bk-toc button{display:flex;align-items:baseline;gap:14px;width:100%;padding:11px 2px;border:0;border-bottom:1px solid var(--paper-line);background:none;color:var(--prose);font:inherit;font-size:.92rem;text-align:left;cursor:pointer}
+.bk-toc .no{min-width:2.4em;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}.bk-toc .tt{flex:1}.bk-toc .pg{color:var(--muted);font-variant-numeric:tabular-nums}.bk-toc button:hover .tt{color:var(--accent)}
+.bk-sec{display:flex;align-items:baseline;gap:12px;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--strong)}
+.bk-secno{color:var(--accent);font-size:1.12rem;font-weight:800;font-variant-numeric:tabular-nums}.bk-sect{margin:0;color:var(--strong);font-size:1.28rem;line-height:1.3;letter-spacing:-.04em}
+.bk-main .bk-sec:not(:first-child){margin-top:22px}
+.bk-cap{margin:6px 0;color:var(--strong);font-size:.82rem;font-weight:700}
+.bk-rib{position:absolute;top:-6px;right:14px;z-index:4;width:14px;height:78px;background:var(--accent);clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);pointer-events:none}
+.bk-leaf{position:absolute;top:0;z-index:3;width:var(--pw);height:var(--ph);transform-style:preserve-3d}.bk-leaf.r{left:var(--pw);transform-origin:left center}.bk-leaf.l{left:0;transform-origin:right center}.bk-leaf.s{left:0;transform-origin:left center}
+.bk-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}.bk-back{transform:rotateY(180deg)}
+.bk-nav{flex:none;width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text);font:inherit;font-size:1.5rem;line-height:1;cursor:pointer}
+.bk-nav:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}.bk-nav:disabled{opacity:.3;cursor:default}
+.bk .mdl-x{position:absolute;top:0;right:0;z-index:5;width:40px;height:40px;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--muted);font:inherit;font-size:1.3rem;line-height:1;cursor:pointer}
+.bk .mdl-x:hover{color:var(--text);border-color:var(--accent)}
+.bk-m{position:absolute;left:-99999px;top:0;visibility:hidden}
+.bk-body .prose,.bk-body .bchart,.bk-body .row2,.bk-body figure{max-width:none}.bk-body .row2{display:block}
+.bk-body .prose p,.bk-body .prose li{max-width:none;font-size:.95rem;line-height:1.75;text-align:justify;color:var(--prose)}
+.bk-body .prose p{margin:0 0 12px;text-indent:1em}.bk-body .prose li{margin-bottom:10px}
+.bk-body .sn{display:inline;margin:0}.bk-body .sn+.sn::before{content:" "}
+.bk-body b,.bk-body .prose b{background:none;color:var(--strong)}.bk-body u{text-decoration:none;font-weight:700}
+.bk-body ul.summary li{padding:0 0 0 22px;border:0;border-radius:0;background:none}.bk-body ul.summary li::before{left:3px;top:.78em}.bk-body ul.cols{columns:auto}
+.bk-body li.bk-cont::before{display:none}
+.bk-body .table-wrap{margin:0 0 16px;border:0;border-radius:0;overflow:visible}
+.bk-body table{min-width:0;border-top:2px solid var(--strong);border-bottom:2px solid var(--strong);background:none}
+.bk-body th{border-bottom:1px solid var(--strong);background:none;color:var(--strong)}.bk-body th,.bk-body td{padding:8px 10px;font-size:.84rem;border-color:var(--paper-line)}
+.bk-body tbody tr:hover td,.bk-body tr.op td,.bk-body .calc tr.best td{background:none}.bk-body tr.op td{font-weight:700}.bk-body tr.op td:first-child{box-shadow:none}.bk-body .calc tr.best td:first-child{border-left:0}
+.bk-body .calc{border:0;background:none;padding:0;margin:0}.bk-body .calc table{min-width:0}.bk-body .calc .bar{display:none}.bk-body .calc .cv{min-width:0;margin:0}
+.bk-body .hint,.bk-body .foot{color:var(--muted);font-size:.84rem;line-height:1.7;margin:0 0 12px;text-align:justify}
+.bk-body figure{margin:4px 0 16px}.bk-body figure img{width:auto;max-width:100%;max-height:var(--imgmax);margin:0 auto;padding:6px;border-radius:4px}.bk-body figcaption{font-size:.8rem;text-align:justify}
+.bk-body .card{margin:0 0 14px;padding:12px 0 0;border:0;border-top:1px solid var(--strong);border-radius:0;background:none}.bk-body .card.warn li,.bk-body .card.warn b{color:inherit}
+.bk-body .bchart{margin:0 0 16px;padding:0;border:0;background:none}
+.bk-body .flash{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.bk.mob{display:block;padding:0}.bk.mob .bk-page{padding:16px 18px 10px}.bk.mob .bk-rh{padding-right:44px}.bk.mob .bk-rib{right:6px;width:10px;height:48px}
+.bk.mob .bk-nav{position:fixed;bottom:16px;z-index:6;width:40px;height:40px}.bk.mob .bk-prev{left:16px}.bk.mob .bk-next{right:16px}.bk.mob .bk-ft{padding-left:48px;padding-right:48px}
+.bk.mob .mdl-x{top:10px;right:10px;width:36px;height:36px}.bk.mob .bk-opn{font-size:3.6rem}.bk.mob .bk-opt{font-size:1.6rem}.bk.mob .bk-sect{font-size:1.12rem}
+.bk.mob .bk-body th,.bk.mob .bk-body td{padding:6px 3px;font-size:.68rem;line-height:1.45}.bk.mob .bk-body th small{font-size:.62rem}.bk.mob .bk-body .tag{margin-left:2px;padding:0 4px;font-size:.6rem}
+@media(prefers-reduced-motion:reduce){.bk-leaf{display:none}}
+
+/* 9차: 종이 넘김(페이지 컬). 음영은 넘어가는 종이의 접힘선 띠에만(이 효과 한정) */
+.bk-curl{position:absolute;top:0;transform-origin:0 0;will-change:clip-path,transform}
+.bk-book.drag{user-select:none;-webkit-user-select:none}
+.bk-shade{position:absolute;left:0;top:0;z-index:2;height:64px;transform-origin:0 0;pointer-events:none;opacity:0}
+.bk-shade.b{background:linear-gradient(to bottom,rgba(0,0,0,.34),rgba(0,0,0,.1) 40%,rgba(0,0,0,0))}.bk-shade.f{height:40px;background:linear-gradient(to bottom,rgba(0,0,0,.22),rgba(0,0,0,0))}
+:root[data-theme=light] .bk-shade.b{background:linear-gradient(to bottom,rgba(23,32,51,.2),rgba(23,32,51,.05) 40%,rgba(23,32,51,0))}:root[data-theme=light] .bk-shade.f{background:linear-gradient(to bottom,rgba(23,32,51,.12),rgba(23,32,51,0))}
+
+/* 10차: 절마다 버튼 하나 · 책 열기/닫기 */
+.pagehead.ph-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bkbtn{display:inline-flex;align-items:center;gap:10px;height:38px;margin-bottom:4px;padding:0 16px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:.86rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s}
+.bkbtn::before{content:attr(data-ch);color:var(--accent);font-size:.7rem;font-weight:800;letter-spacing:.12em}
+.bkbtn[data-meta]::after{content:attr(data-meta);padding-left:10px;border-left:1px solid var(--border);color:var(--muted);font-size:.74rem;font-weight:500}
+.bkbtn:hover{border-color:var(--accent)}
+.s0-head{display:block}
+.mdl::backdrop{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+.bk-dim{position:fixed;inset:0;background:rgba(5,9,16,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0}
+:root[data-theme=light] .bk-dim{background:rgba(16,26,46,.4)}
+.bk-nav,.bk .mdl-x{transition:opacity .2s}.bk.bk-intro .bk-nav,.bk.bk-intro .mdl-x,.bk.bk-outro .bk-nav,.bk.bk-outro .mdl-x{opacity:0;pointer-events:none}
+.bk-book.bk-closed{box-shadow:none!important}
+.bk-host{position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none}
+.bk-cov{position:absolute;top:0;z-index:6;width:var(--pw);height:var(--ph);transform-style:preserve-3d;transform-origin:left center}
+.bk-cov-f,.bk-cov-b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}.bk-cov-b{transform:rotateY(180deg)}
+.bk-cov-f{border:1px solid var(--paper-line);background:var(--paper);box-shadow:1px 0 0 var(--edge1),2px 0 0 var(--edge2),3px 0 0 var(--edge1),4px 0 0 var(--edge2),5px 0 0 var(--edge1),6px 0 0 var(--edge2),7px 0 0 var(--edge1),8px 0 0 var(--edge2),0 2px 0 var(--edge1),0 3px 0 var(--edge2)}
+.bk-cov-in{position:absolute;inset:18px;display:flex;flex-direction:column;justify-content:center;padding:0 34px;border:1px solid var(--paper-line)}
+.bk-cov-t{color:var(--strong);font-size:2.1rem;font-weight:800;line-height:1.25;letter-spacing:-.05em}
+.bk-cov-by{position:absolute;left:34px;bottom:24px;color:var(--muted);font-size:.78rem;letter-spacing:.08em}
+.bk-cov .bk-rib{right:28px}.bk.mob .bk-cov-t{font-size:1.6rem}
+
+/* 11차: 입체 넘김 · 두께 있는 3D 책. 빛·그늘·드리운 그림자·접지 그림자는 이 효과에 한해서만 */
+:root{--board:#111d31}:root[data-theme=light]{--board:#e8edf4}
+.bk-book{perspective:1600px}
+.bk-sheet{position:absolute;top:0;z-index:4;width:var(--pw);height:var(--ph);transform-style:preserve-3d;will-change:transform;pointer-events:none}
+.bk-st{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.bk-fa{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}.bk-fb{transform:rotateY(180deg)}.bk-fa>.bk-page{position:absolute;inset:0}
+.bk-lt,.bk-hl{position:absolute;inset:0;z-index:9;opacity:0;pointer-events:none}.bk-lt{background:#000}.bk-hl{background:#fff}:root[data-theme=light] .bk-lt{background:#17203a}
+.bk-cast{position:absolute;top:0;z-index:3;width:var(--pw);height:var(--ph);opacity:0;pointer-events:none}
+.bk-cast.r{transform-origin:left center;background:linear-gradient(to right,rgba(0,0,0,.42),rgba(0,0,0,0) 55%)}.bk-cast.l{transform-origin:right center;background:linear-gradient(to left,rgba(0,0,0,.42),rgba(0,0,0,0) 55%)}
+:root[data-theme=light] .bk-cast.r{background:linear-gradient(to right,rgba(23,32,51,.24),rgba(23,32,51,0) 55%)}:root[data-theme=light] .bk-cast.l{background:linear-gradient(to left,rgba(23,32,51,.24),rgba(23,32,51,0) 55%)}
+.ob{--T:24px;position:absolute;top:0;z-index:6;width:var(--pw);height:var(--ph);transform-style:preserve-3d;will-change:transform,opacity}
+.ob-block{position:absolute;inset:0;transform-style:preserve-3d}
+.ob-page,.ob-leaf,.ob-back{position:absolute;inset:0;transform-origin:left center}.ob-page>.bk-page{position:absolute;inset:0}
+.ob-leaf{transform:translateZ(-2px);border:1px solid var(--paper-line);background:var(--paper)}
+.ob-back{transform:translateZ(calc(-1 * var(--T))) rotateY(180deg);border:1px solid var(--paper-line);background:var(--board)}
+.ob-spine,.ob-fore{position:absolute;top:0;width:var(--T);height:100%;transform-origin:left center;transform:rotateY(90deg)}
+.ob-spine{left:0;border:1px solid var(--paper-line);background:var(--board)}
+.ob-fore{left:100%;background:repeating-linear-gradient(90deg,var(--edge1) 0 1px,var(--edge2) 1px 2px)}
+.ob-top,.ob-bot{position:absolute;left:0;width:100%;height:var(--T);transform-origin:center top;transform:rotateX(-90deg);background:repeating-linear-gradient(0deg,var(--edge1) 0 1px,var(--edge2) 1px 2px)}.ob-top{top:0}.ob-bot{top:100%}
+.ob-cov{position:absolute;inset:0;transform-style:preserve-3d;transform-origin:left center;transform:translateZ(1px)}
+.ob-cf,.ob-ci{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}.ob-ci{transform:rotateY(180deg)}.ob-ci>.bk-page{position:absolute;inset:0}
+.ob-cf{border:1px solid var(--paper-line);background:var(--board)}.ob-cf .bk-rib{right:28px}
+.ob-shadow{position:absolute;left:6%;right:6%;bottom:-30px;height:50px;border-radius:50%;background:rgba(0,0,0,.55);filter:blur(18px);opacity:0;transform:translateZ(-40px);pointer-events:none}
+:root[data-theme=light] .ob-shadow{background:rgba(23,32,51,.35)}
+
+.bk.bk-intro .bk-book,.bk.bk-outro .bk-book{perspective:2600px}
+
+/* 12차: 화살표 없음 · 쪽 클릭 넘김 · 모서리 들림 힌트 */
+:root{--flap:#1b2942;--under:#060a13}:root[data-theme=light]{--flap:#eef2f7;--under:#c9d2de}
+.bk-peel{position:absolute;bottom:-1px;z-index:5;width:0;height:0;pointer-events:none;transition:width .22s ease,height .22s ease}
+.bk-page.r .bk-peel{right:-1px;background:linear-gradient(135deg,var(--flap) 0 50%,var(--under) 50% 100%)}.bk-page.l .bk-peel{left:-1px;background:linear-gradient(225deg,var(--flap) 0 50%,var(--under) 50% 100%)}
+.bk-peel::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0) 44%,rgba(0,0,0,.28) 50%,rgba(0,0,0,0) 56%)}.bk-page.l .bk-peel::before{background:linear-gradient(225deg,rgba(0,0,0,0) 44%,rgba(0,0,0,.28) 50%,rgba(0,0,0,0) 56%)}
+.bk-book.peek-r .bk-page.r .bk-peel,.bk-book.peek-l .bk-page.l .bk-peel{width:40px;height:40px}
+.bk-book.peek-r,.bk-book.peek-l{cursor:grab}.bk-book .bk-page:not(.bk-opener){cursor:pointer}
+.bk.mob .bk-ft{padding-left:0;padding-right:0}
+@media(prefers-reduced-motion:reduce){.bk-peel{transition:none}}
+
+/* 16차: 캐스티 고개 갸우뚱(머리만, 목 가운데 32,50 을 축으로). 몸통은 고정. CSS transform 만 */
+.cs-h{transform-box:view-box;transform-origin:32px 50px}
+.tour-av .cs-h{animation:cs-tilt 1.1s cubic-bezier(.37,0,.63,1) infinite alternate}
+@keyframes cs-tilt{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
+.guidebtn .cs-h{animation:cs-tilt-s 1.1s cubic-bezier(.37,0,.63,1) infinite alternate}
+@keyframes cs-tilt-s{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.cs-h{animation:none!important}}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="casty-b" viewBox="0 0 64 64"><rect x="19" y="52" width="26" height="10" rx="4" style="fill:var(--accent)"/><circle cx="32" cy="57" r="2.2" style="fill:var(--yellow)"/></symbol><symbol id="casty-h" viewBox="0 0 64 64"><path d="M32 2.5C34.6 5.7 36 7.9 36 9.7a4 4 0 0 1-8 0C28 7.9 29.4 5.7 32 2.5z" style="fill:var(--yellow)"/><rect x="30.8" y="13" width="2.4" height="5" rx="1.2" style="fill:var(--muted)"/><rect x="5" y="27" width="5" height="11" rx="2.5" style="fill:var(--accent)"/><rect x="54" y="27" width="5" height="11" rx="2.5" style="fill:var(--accent)"/><rect x="9" y="16" width="46" height="34" rx="12" style="fill:var(--surface-2);stroke:var(--accent);stroke-width:2.5"/><rect x="15" y="22" width="34" height="21" rx="8" style="fill:#0b1424"/><circle cx="25" cy="31" r="3.2" style="fill:#79e2c1"/><circle cx="39" cy="31" r="3.2" style="fill:#79e2c1"/><path d="M27.5 37q4.5 3 9 0" style="fill:none;stroke:#79e2c1;stroke-width:2;stroke-linecap:round"/></symbol></svg>
+<aside class="sidebar"><div class="brand">DIE-CASTING <span>DEFECT LAB</span><small>1조 최종 보고서 · 포스코 K-뉴딜아카데미</small></div><div class="side-label">목차</div><nav><a href="#s0" data-n="0"><span class="num">00</span>요약</a><a href="#s1" data-n="1"><span class="num">01</span>데이터</a><a href="#s2" data-n="2"><span class="num">02</span>설계</a><a href="#s3" data-n="3"><span class="num">03</span>베이스라인</a><a href="#s4" data-n="4"><span class="num">04</span>비교 실험</a><a href="#s5" data-n="5"><span class="num">05</span>학습곡선</a><a href="#s6" data-n="6"><span class="num">06</span>분할 비교</a><a href="#s7" data-n="7"><span class="num">07</span>운영 기준</a><a href="#s8" data-n="8"><span class="num">08</span>원인 분석</a><a href="#s9" data-n="9"><span class="num">09</span>현장 언어</a><a href="#s10" data-n="10"><span class="num">10</span>AI 사용</a></nav><div class="side-links"><div class="side-tools"><button class="sbtn" id="theme" type="button"></button><button class="sbtn guidebtn" id="guide" type="button" aria-label="가이드 다시 보기" data-tip="가이드 다시 보기"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#casty-b"/><g class="cs-h"><use href="#casty-h"/></g></svg></button><a class="slink" href="보고서_1조.pdf">PDF 보고서</a><a class="slink" href="https://github.com/hajin-eng/team1-deeplearning">GitHub 코드</a></div><span style="font-size:.72rem">← → 키로도 넘길 수 있습니다</span></div></aside>
+<div class="progress" id="progress"></div><div class="lightbox" id="lb"><img alt=""></div>
+<main><section id="s0" class="page"><div class="hero"><span class="eyebrow">POSCO K-뉴딜아카데미 · Deep Learning · 1조</span>
+<h1>주조 불량 유형 예측<br><span class="hl">1조 최종 보고서</span></h1><p class="hero-description">포스코 K-뉴딜아카데미 딥러닝 최종 프로젝트 · 7,535샷(학습 5,274 · 시험 2,261) · 지표 macro F1 · 검증 수치는 학습 데이터로 계산했고, 최종 제출 모델은 중간 리더보드(public) 점수를 기준으로 1안으로 정했다</p>
+<div class="metrics"><div class="metric"><span class="metric-label">중간 리더보드(public)<br>실제 점수 (공개 기준선 0.2517)</span><span class="metric-value">0.5987</span></div><div class="metric"><span class="metric-label">같은 입력이 없는 새 샷에서<br>잡는 불량 비율</span><span class="metric-value">10%</span></div><div class="metric"><span class="metric-label">private 크기(1,131샷)에서<br>점수의 표본 흔들림</span><span class="metric-value">SD 0.037</span></div><div class="metric"><span class="metric-label">운영안(정상 확률 배율)<br>10:1에서 전수 검사 대비 −9%</span><span class="metric-value">×0.1</span></div></div></div><div class="s0-head"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">00 / 요약</span><h2 class="section-title">요약</h2></div><button type="button" class="bkbtn" data-book="0" data-ch="CHAPTER 00">자세히 보기</button></div></div><div class="flow" role="navigation" aria-label="읽는 순서"><span class="flow-k">읽는 순서</span><button type="button" class="flow-c" data-go="4"><b>제출 모델 1안</b><small>4절</small></button><button type="button" class="flow-c" data-go="6"><b>새 입력에서의 한계</b><small>6절, 그림 4</small></button><button type="button" class="flow-c" data-go="7"><b>대응: 경보 기준과 또 다른 안(2안)</b><small>7절</small></button><div class="flow-c flow-2"><button type="button" data-go="8"><b>원인 후보</b><small>8절</small></button><button type="button" data-go="9"><b>현장 언어</b><small>9절</small></button></div></div><div class="s0-cards"><div class="s0-card"><h3>최종 모델</h3><p>랜덤포레스트 + ExtraTrees 확률 평균 + 두 단계 모델(불량 여부 → 불량 종류) 혼합 + 앞뒤 사건의 입력값 40개 추가(입력 25→65개).</p><button type="button" class="cd-ck" data-mdl="mdl1" data-at="2">확인하기</button></div><div class="s0-card"><h3>핵심 발견</h3><p>같은 입력이 없는 새 샷에서는 불량 1,182건 중 122건(10%)만 잡고 정상 4,092건 중 73건(1.8%)에 헛경보를 낸다.</p><button type="button" class="cd-ck" data-mdl="mdl1" data-at="3">확인하기</button></div><div class="s0-card"><h3>현장 제안</h3><p>불량 판정이 아니라 검사 대상 선별로 쓴다. 경보 기준을 놓침 비용에 맞춰 낮추는 방식이다.</p><button type="button" class="cd-ck" data-mdl="mdl1" data-at="4">확인하기</button></div><div class="s0-card"><h3>한계</h3><p>같은 입력이 없는 새 샷에서는 불량의 10%만 잡는다.<br>비용 비율은 가정이라 현장 값으로 교체해야 한다.</p><button type="button" class="cd-ck" data-mdl="mdl1" data-at="5">확인하기</button></div></div><div class="mdl-src" id="mdl1" hidden><h3 class="mdl-t" id="mdl1-t">요약</h3><div class="prose"><ul class="summary cols">
+<li><b>안 이름</b>: <b>1안</b> = 최종 제출안(점수가 높고 채점 구조에 맞음), <b>2안</b> = 현장성을 높인 또 다른 안(불량을 더 적극적으로 잡고, 뒤 사건 입력 없이 실시간 판정이 가능).</li>
+<li><b>읽는 순서</b>: 제출 모델 1안(4절) → 새 입력에서의 한계(6절, 그림 4) → 대응: 경보 기준과 또 다른 안(2안, 7절) → 원인 후보(8절)와 현장 언어(9절).</li>
+<li><span class="sn"><b>최종 모델</b>: 랜덤포레스트 + ExtraTrees 확률 평균 + 두 단계 모델(불량 여부 → 불량 종류) 혼합 + 앞뒤 사건의 입력값 40개 추가(입력 25→65개). <code>python main.py</code> 한 줄, CPU 약 80초. 중간 리더보드 점수 0.5987(공개 기준선 0.2517).</span></li>
+<li><span class="sn"><b>핵심 발견</b>: 시험 샷의 약 58%는 같은 입력(쌍둥이)이 학습에 있어 93%를 맞힌다.</span><span class="sn">같은 입력이 없는 새 샷에서는 <b>불량 1,182건 중 122건(10%)만 잡고 정상 4,092건 중 73건(1.8%)에 헛경보를 낸다</b>. 이 한계는 모델 종류와 무관하다(18개 탐지기 AUC 0.72~0.75).</span></li>
+<li><span class="sn"><b>현장 제안</b>: 불량 판정이 아니라 <b>검사 대상 선별</b>로 쓴다. 경보 기준을 놓침 비용에 맞춰 낮추는 방식이다.</span><span class="sn">하루 3,800샷 기준 운영안은 정상 확률 ×0.1이고, 놓침 1건=헛경보 10건이면 전수 검사보다 9% 싸다(5:1은 24%, 20:1은 이점 없음, 7절). 2안과 비교해도 경보 기준을 맞추면 최저 비용 차이는 4% 안이다(4·7절). 공정 관리 후보 구간은 시험 생산으로 확인해야 한다.</span></li>
+<li><span class="sn"><b>한계</b>: ① 같은 입력이 없는 새 샷에서는 불량의 10%만 잡는다.</span><span class="sn">② <b>뒤 사건 입력은 실시간 현장에서 모르므로</b> 사후 분석·일괄 선별용이다(앞 사건만 쓰면 이득이 사라짐, 4절 ①). 실시간 적용에는 앞 사건만 쓰는 변형이 필요하다.</span><span class="sn">③ 비용 비율은 가정이라 현장 값으로 교체해야 한다.</span></li>
+<li><span class="sn"><b>규칙 준수</b>: 특징은 전처리된 입력뿐이며 shot_id·id·Shot 열과 정답에서 만든 값, 원본 불량 기록은 쓰지 않았다.</span><span class="sn">쌍둥이 묶음은 입력값 비교로 만들어 검증 분할에만 쓴다.</span><span class="sn">이웃 <i>입력</i>은 쓰지만 이웃의 <i>정답</i>은 쓰지 않았다.</span><span class="sn">최종 제출 모델은 중간 리더보드 점수(0.5987)를 기준으로 1안으로 정했고, 학습 데이터 검증은 한계와 운영 기준을 보는 데 썼다.</span></li></ul></div></div></section><section id="s1" class="page"><div class="pagehead"><span class="eyebrow">01 / 데이터</span><h2 class="section-title">데이터 문제와 처리</h2></div><div class="prose"><div class="table-wrap"><table><tr><th>문제</th><th>확인한 수치</th><th>처리와 이유</th></tr>
+<tr><td>식별·상수 열</td><td>shot_id·id·Shot 3개, Min/Max 상수 8개</td><td>제거(식별 열은 규칙상 특징 불가, 상수는 정보 없음). 32열 → 21열 + 표시 열 4개 = 25개</td></tr>
+<tr><td>결측</td><td>공장 온도·습도 90행(전부 제품 유형 2, 두 덩어리)</td><td>앞뒤 실측 30개씩의 중앙값으로 채움 + 결측 표시 열. 방식·창 크기 간 점수 차 0.004(표준편차 0.03 이내)</td></tr>
+<tr><td>이상한 값</td><td>속도 0·긴 사이클(설비 정지로 보임), 이상치 15행</td><td>지우지 않고 표시 열만 추가. 지워도 점수 차가 표준편차 안쪽</td></tr>
+<tr><td>중복 행(쌍둥이)</td><td>입력 21개가 앞 행과 같은 행 3,174개(42%), 같은 묶음 안 라벨 일치 97.8%</td><td>행은 유지하고 묶음 번호를 검증 분할에만 사용(특징 아님). 시험 데이터도 58%가 같은 구조</td></tr>
+<tr><td>클래스 불균형</td><td>정상 77.6%, 기타불량 76건·Stain 100건</td><td>class_weight(balanced의 0.5제곱). 정확도가 아닌 macro F1 사용</td></tr>
+<tr><td>제품·시기 교란</td><td>shot 4208에서 제품 전환, 불량 종류가 제품·시기에 몰림(400샷 블록 불량률 1.8~51%)</td><td>검증을 묶음·시간순으로 따로 측정(6절), 원인 분석은 제품 유형별로 수행(8절)</td></tr></table></div></div></section><section id="s2" class="page"><div class="pagehead"><span class="eyebrow">02 / 설계</span><h2 class="section-title">설계 카드 (MLP)</h2></div><div class="prose"><div class="row2 fig-r"><p><span class="sn">입력 25개 → 은닉 128 → 64 → 출력 7, 활성화 ReLU(비선형 표현), 드롭아웃 0.2(과적합 방지), 손실은 클래스 가중 교차엔트로피(희귀 불량을 놓치지 않게), Adam 학습률 1e-3(손실이 안정적으로 내려감), 가중치 감쇠 1e-4. epoch는 검증 손실이 최저인 18에서 멈춘다(그림 1). 입력은 학습 구간 평균·표준편차로 표준화.</span></p><figure><img src="../보고서_그림/그림1_epoch곡선.png"><figcaption>그림 1. 학습 손실은 계속 내려가지만 검증 손실은 epoch 18(1.143)에서 최저, epoch 60에서 1.188로 4% 상승 → 과적합 시작점. 시드 3개 최저점 19·27·35.</figcaption></figure></div></div></section><section id="s3" class="page"><div class="pagehead"><span class="eyebrow">03 / 베이스라인</span><h2 class="section-title">베이스라인 대조</h2></div><div class="prose"><div class="row2 wide-l"><div class="table-wrap"><table><tr><th>모델 (쌍둥이 묶음 검증, 새 입력)</th><th>macro F1</th><th>비고</th></tr>
+<tr><td>공개 기준선(로지스틱 + class_weight, 강사 제공)</td><td>0.2517</td><td>리더보드 구조</td></tr>
+<tr><td>로지스틱 / RF / HGB (잎 10)</td><td>0.287 / 0.326 / 0.305</td><td>새 입력만 맞히는 어려운 검증</td></tr>
+<tr><td>MLP</td><td>0.277(탐지율 54%)</td><td>리더보드 구조에서는 0.289로 트리(0.58)보다 훨씬 낮음</td></tr></table></div><p><span class="sn"><b>MLP가 리더보드 구조에서 낮은 이유</b>: 시험의 58%는 학습에 같은 입력이 있는데 트리는 이를 외워 93% 맞히고 MLP는 외우지 못한다.</span><span class="sn">반대로 새 입력에서는 MLP(0.277)와 트리(0.279)가 같다.</span><span class="sn">즉 점수 차는 모델 품질이 아니라 "같은 입력을 외울 수 있는가"에서 나온다.</span></p></div></div></section><section id="s4" class="page"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">04 / 비교 실험</span><h2 class="section-title">비교 실험 3종 (한 번에 하나만 바꿈, 1안 대비 내부 점수 차이)</h2></div><button type="button" class="bkbtn" data-book="4" data-ch="CHAPTER 04">자세히 보기</button></div><div class="take"><div class="good"><span class="n">+0.0045</span><span class="t">앞뒤 사건 입력값 추가: 유일하게 일관된 이득</span></div><div class="mid"><span class="n">±0.005</span><span class="t">시드를 바꿔도 점수가 이만큼 흔들림(이 안은 사실상 같음)</span></div><div class="good"><span class="n">20여 가지</span><span class="t">그 밖의 시도도 모두 ±0.005 이내 → 1안이 평평한 정점</span></div></div><div class="bchart"><h4>한 번에 하나만 바꾼 결과 (1안 대비 점수 차이)</h4><div class="sub">회색 띠 = 시드 흔들림(±0.005). 막대가 띠 안에 있으면 의미 있는 차이라고 보기 어렵다.</div><div class="brow"><div class="bl">앞뒤 사건 입력 40개 추가<small>없음 → 40개</small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c4" style="left:50.0%;width:37.5%"></i><span style="left:88.5%">+0.0045</span></div></div></div><div class="brow"><div class="bl">앞 사건만<small></small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c5" style="left:48.3%;width:1.7%"></i><span style="left:36.3%">-0.0002</span></div></div></div><div class="brow"><div class="bl">뒤 사건만<small></small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c5" style="left:37.5%;width:12.5%"></i><span style="left:25.5%">-0.0015</span></div></div></div><div class="brow"><div class="bl">클래스 가중치 0.3<small>기본 0.5</small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c5" style="left:48.3%;width:1.7%"></i><span style="left:36.3%">-0.0002</span></div></div></div><div class="brow"><div class="bl">클래스 가중치 0.75<small></small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c4" style="left:50.0%;width:5.0%"></i><span style="left:56.0%">+0.0006</span></div></div></div><div class="brow"><div class="bl">클래스 가중치 1.0<small></small></div><div><div class="div"><div class="band" style="left:8.3%;width:83.3%"></div><div class="zero"></div><i class="c5" style="left:44.2%;width:5.8%"></i><span style="left:32.2%">-0.0007</span></div></div></div></div><div class="verdict"><b>리더보드에서는 1안(0.5987 대 0.5710), 처음 보는 입력과 새 생산 구간에서는 2안이 불량을 더 많이 잡는다.</b> 선택은 public 점수로 했고, 검증 수치는 그 한계를 보는 데 썼다.</div><div class="mdl-src" id="mdl2" hidden><h3 class="mdl-t" id="mdl2-t">1안 vs 2안 그래프</h3><div class="row2"><div class="bchart"><h4>1안 vs 2안: 평가 조건에 따라 우열이 뒤집힌다</h4><div class="sub">같은 학습 데이터 검증(시드 7·123·2026 평균). 탐지율 = 실제 불량 중 잡아낸 비율.</div><div class="legend"><span><i class="dot c1"></i>1안 (최종 제출안)</span><span><i class="dot c2"></i>2안 (현장성을 높인 또 다른 안)</span></div><div class="brow"><div class="bl">public 점수<small>실제 제출 결과</small></div><div><div class="bar2"><i class="c1" style="width:85.5%"></i><span>0.599</span></div><div class="bar2"><i class="c2" style="width:81.6%"></i><span>0.571</span></div></div></div><div class="brow"><div class="bl">새 입력 F1<small>같은 입력이 없는 샷</small></div><div><div class="bar2"><i class="c1" style="width:36.9%"></i><span>0.258</span></div><div class="bar2"><i class="c2" style="width:46.1%"></i><span>0.323</span></div></div></div><div class="brow"><div class="bl">새 생산 구간 F1<small>연속 100샷 통째로</small></div><div><div class="bar2"><i class="c1" style="width:19.4%"></i><span>0.136</span></div><div class="bar2"><i class="c2" style="width:33.6%"></i><span>0.235</span></div></div></div></div><div class="bchart"><h4>불량 탐지율</h4><div class="sub">1안은 새 생산 구간에서 불량을 거의 못 잡는다(1.2%).</div><div class="legend"><span><i class="dot c1"></i>1안 (최종 제출안)</span><span><i class="dot c2"></i>2안 (현장성을 높인 또 다른 안)</span></div><div class="brow"><div class="bl">새 입력<small></small></div><div><div class="bar2"><i class="c1" style="width:17.2%"></i><span>10.3%</span></div><div class="bar2"><i class="c2" style="width:80.0%"></i><span>48%</span></div></div></div><div class="brow"><div class="bl">새 생산 구간<small></small></div><div><div class="bar2"><i class="c1" style="width:2.0%"></i><span>1.2%</span></div><div class="bar2"><i class="c2" style="width:51.7%"></i><span>31%</span></div></div></div></div></div></div><div class="mdl-src" id="mdl3" hidden><h3 class="mdl-t" id="mdl3-t">자세한 설명과 표 전체</h3><div class="prose"><div class="table-wrap"><table><tr><th>바꾼 것</th><th>결과</th><th>해석</th></tr>
+<tr><td>① 앞뒤 사건 입력값 특징 (없음 → 40개)</td><td>+0.0045 (앞만 −0.0002, 뒤만 −0.0015)</td><td>유일하게 일관된 이득. 앞뒤 샷의 공정 상태가 현재 샷의 불량과 이어진다고 해석. 라벨은 쓰지 않음</td></tr>
+<tr><td>② 클래스 가중치 강도 (0.3 / 0.75 / 1.0, 기본 0.5)</td><td>−0.0002 / +0.0006 / −0.0007</td><td>노이즈 → 0.5 유지. 강하게 줄수록 탐지는 늘지만 헛경보도 늘어 점수는 그대로</td></tr>
+<tr><td>③ 잎 크기 (최소 샘플 1 → 2)</td><td>0.608 vs 0.610</td><td>동일 → 1 유지(탐지 57.4%, 정확도 87.2%)</td></tr></table></div>
+<p><span class="sn">이 밖에 나무 수 900, max_features, 부트스트랩, 이웃 ±2~3, 시기 군집, 클래스별 탐지기, SMOTE식 보강, 이동평균 등 20여 가지를 시험했으나 모두 ±0.005 이내였고(시드 흔들림 0.005), 어떤 조합도 시험 데이터 예측이 시드에 따라 평균 3행(0.1%) 넘게 바뀌지 않았다.</span><span class="sn">1안이 평평한 정점이다.</span></p>
+<p><span class="sn"><b>최종 모델 선택 근거</b>: 1안(최종 제출안)과 2안(현장성을 높인 또 다른 안: RF 잎1 + RF 잎6 확률 평균, 기타불량 확률 ×1.5, 입력 25개)을 같은 학습 데이터 검증에서 비교했다.</span><span class="sn"><b>최종 제출은 실제 리더보드(public) 점수 기준으로 1안(0.5987 대 0.5710)으로 정했다.</b> 검증 수치는 이 선택의 한계를 확인하는 데 썼다.</span><span class="sn">"새 입력"은 쌍둥이를 같은 쪽에 두는 5분할, "새 생산 구간"은 연속 100샷을 통째로 떼는 5분할이며 시드 7·123·2026 평균, 경보 기준은 둘 다 ×1.0이다.</span></p>
+<div class="table-wrap"><table><tr><th>모델</th><th>public 점수 (실제 제출)</th><th>새 입력 F1 / 탐지율</th><th>새 생산 구간 F1 / 탐지율</th><th>놓침 / 헛경보 (public 크기 1,130샷 환산)</th><th>구조와 용도</th></tr>
+<tr><td><b>1안 (최종 제출안)</b></td><td><b>0.5987</b></td><td>0.258 / 10.3%</td><td>0.136 / <b>1.2%</b></td><td>106 / <b>23</b></td><td>숲 6개·2단계·앞뒤 입력 65개. 채점 구조(쌍둥이 58%)에 맞음, 뒤 사건 입력이 필요해 사후 분석용</td></tr>
+<tr><td>2안 (현장성을 높인 또 다른 안)</td><td>0.5710</td><td><b>0.323</b> / 48.0%</td><td><b>0.235</b> / 31.0%</td><td><b>65</b> / 106</td><td>숲 2개·입력 25개. 불량을 적극 부름, 실시간 가능</td></tr></table></div>
+<p><span class="sn">리더보드와 같은 구조(시험의 58%가 학습에 같은 입력)에서는 외우는 능력이 점수를 가르므로 1안이 높고, 처음 보는 입력과 새 생산 구간에서는 2안이 불량을 더 잡는다.</span><span class="sn"><b>1안은 새 생산 구간에서 불량을 거의 못 잡는다(탐지율 1.2%)</b>. 불량을 구분하는 능력 자체(AUC)는 두 모델 모두 0.74~0.75로 같고, 1안과 2안의 public 차이 0.028은 private 크기(1,131샷) 표본 흔들림(SD 0.037) 안이다.</span><span class="sn">1안에 2안의 확률을 섞어도 점수·정확도·새 입력 세 지표를 동시에 올리지는 못했고, 탐지 증가 효과는 1안의 경보 기준 하나로 더 적은 손실로 얻는다(7절). 그래서 제출 CSV는 1안, 현장 운영 후보는 2안으로 구분한다.</span></p></div></div></section><section id="s5" class="page"><div class="pagehead"><span class="eyebrow">05 / 학습곡선</span><h2 class="section-title">학습곡선 (데이터를 더 모아야 하는가)</h2></div><div class="prose"><div class="row2 wide-l"><figure><img src="../보고서_그림/그림2_데이터양곡선.png"><figcaption>그림 2. 학습 데이터 비율에 따른 점수(1안, 시드 2개). 새 입력 0.193→0.253(60% 이후 평평). 리더보드풍 0.536→0.612, 무작위 CV 0.268→0.565(같은 입력이 학습에 들어와 크게 오름).</figcaption></figure><p><span class="sn"><b>결론</b>: 데이터를 더 모으면 "이미 본 조건"의 점수는 오르지만 새 조건의 점수는 거의 안 오른다.</span><span class="sn">새 조건을 잡으려면 데이터 양보다 <b>불량과 정상을 가르는 새 측정</b>이 필요하다.</span><span class="sn">가정 기반 계산(불량 샷에서 평균 d 표준편차 높은 가상 측정을 추가, 실제 결과 아님): d=0.5는 점수 0.268→0.269로 변화 없고, d=1이면 0.297, d=2이면 0.400(탐지율 14%→41%). 구분력이 표준편차의 약 1배 이상인 측정을 찾아야 의미가 있다.</span></p></div></div></section><section id="s6" class="page"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">06 / 분할 비교</span><h2 class="section-title">분할 방식 비교 (어느 쪽이 배포 성능인가)</h2></div><button type="button" class="bkbtn" data-book="6" data-ch="CHAPTER 06">자세히 보기</button></div><div class="verdict"><b>현장 배포 성능에 가까운 쪽은 시간순이다.</b> 리더보드는 시험 샷이 생산 순서에 섞여 있어 무작위 쪽에 가깝다. 점수 하나만 보고 판단하면 안 되는 이유다.</div><div class="lead"><div class="lead-l"><div class="take-cap">같은 1안(최종 제출안)의 macro F1이 검증 방식에 따라 이렇게 달라진다</div><div class="take"><div class="good"><span class="k">무작위 80/20</span><span class="n">0.56</span><span class="t">같은 입력이 학습에 있어 외우면 높게 나옴</span></div><div class="mid"><span class="k">쌍둥이 묶음 80/20 (새 입력)</span><span class="n">0.26</span><span class="t">쌍둥이를 묶으면 절반 아래로</span></div><div class="bad"><span class="k">시간순 80/20 (shot 6009~7535)</span><span class="n">0.125</span><span class="t">"전부 정상" 수준</span></div></div></div><div class="bchart"><h4>검증 방식별 macro F1 (1안 vs 2안)</h4><div class="sub">시드 5개 평균. 시간순은 shot 순 앞 80%로 학습해 뒤 20%를 검증.</div><div class="legend"><span><i class="dot c1"></i>1안 (최종 제출안)</span><span><i class="dot c2"></i>2안 (현장성을 높인 또 다른 안)</span></div><div class="brow"><div class="bl">무작위 80/20<small>리더보드와 가장 비슷</small></div><div><div class="bar2"><i class="c1" style="width:80.0%"></i><span>0.560</span></div><div class="bar2"><i class="c2" style="width:72.0%"></i><span>0.504</span></div></div></div><div class="brow"><div class="bl">쌍둥이 묶음 80/20<small>새 입력</small></div><div><div class="bar2"><i class="c1" style="width:36.6%"></i><span>0.256</span></div><div class="bar2"><i class="c2" style="width:48.3%"></i><span>0.338</span></div></div></div><div class="brow"><div class="bl">시간순 80/20<small>현장 배포에 가까움</small></div><div><div class="bar2"><i class="c1" style="width:17.9%"></i><span>0.125</span></div><div class="bar2"><i class="c2" style="width:15.9%"></i><span>0.111</span></div></div></div></div></div><div class="mdl-src" id="mdl4" hidden><h3 class="mdl-t" id="mdl4-t">표와 핵심 정리</h3><div class="prose"><div class="row2"><div class="table-wrap"><table class="num"><tr><th>모델</th><th>무작위 80/20<small>리더보드와 가장 비슷</small></th><th>쌍둥이 묶음 80/20<small>새 입력</small></th><th class="hot">시간순 80/20<small>현장 배포에 가까움</small></th></tr>
+<tr><td><b>1안(최종 제출안)</b></td><td><b>0.560</b></td><td>0.256</td><td class="hot"><b>0.125</b> (탐지 0%)</td></tr>
+<tr><td>2안 (현장성을 높인 또 다른 안)</td><td>0.504</td><td><b>0.338</b></td><td class="hot">0.111 (탐지 31%, 정확도 50%)</td></tr></table></div>
+<ul class="summary">
+<li><b>1안은 외운 만큼 부푼다</b>: 외우는 1안은 무작위에서 부풀고 시간순에서는 "전부 정상"(0.125)에 가깝다.</li>
+<li><b>2안도 시간순에서는 1안과 같은 수준</b>: 시간순에서도 불량의 31%를 부르지만 헛경보가 많아 정확도가 50%이고 F1은 0.111이다.</li>
+<li><b>분할에 따라 모델 순위가 바뀐다</b>: 무작위 분할과 실제 리더보드(public 1안 0.5987, 2안 0.5710)에서는 1안이 높고, 쌍둥이 묶음(새 입력) 기준에서는 2안이 0.34로 1안(0.26)보다 높다.</li>
+<li><span class="sn"><b>그러므로 최종 점수(private 1,131행, 흔들림 SD 약 0.03)를 현장 성능으로 읽으면 안 된다.</b></span><span class="sn">연속 100샷 구간을 통째로 떼는 "새 생산 구간" 검증(4절 표)에서도 같은 결과다: 1안은 F1 0.136·탐지율 1.2%, 2안은 0.235(탐지 31%).</span></li>
+</ul></div></div></div><div class="mdl-src" id="mdl5" hidden><h3 class="mdl-t" id="mdl5-t">새 입력에서 실제로 잡고 놓친 건수 (그림 4)</h3><div class="prose"><figure><img src="../보고서_그림/그림6_2x2.png"><figcaption>그림 4. 새 입력(쌍둥이를 같은 쪽에 둔 5분할) 기준 정상/불량 2×2 표, 건수는 시드 7·123·2026 평균이며 경보 기준 ×1.0. 1안은 불량 1,182건 중 122건(10%)을 잡고 정상 4,092건 중 73건에 헛경보를 낸다. 2안은 불량을 48% 잡는 대신 헛경보가 18%다. 7절 비용표는 시드 4개 평균이라 이 그림과 몇 건 다르다.</figcaption></figure></div></div><div class="mdl-src" id="mdl6" hidden><h3 class="mdl-t" id="mdl6-t">시간순 구간의 성격과 1안을 고른 이유</h3><div class="prose"><ul>
+<li>시간순 구간(shot 6009~7535)은 전부 제품 유형 2이고 학습에 이 제품이 1,269행뿐이어서 "새 시기의 같은 제품"을 거의 못 본 시험이다.</li>
+<li>시험 샷의 58%가 학습에 같은 입력이 있는 구조(private 58.4%, 입력으로 센 값)라 최종 채점도 이 구조에 가깝다고 보고, public 점수가 높은 1안을 택했다.</li>
+<li>대신 새 입력 약점을 한계로 명시하고 운영안은 경보 기준으로 보완했다.</li>
+<li>private 점수는 1,131샷이라 표본만으로 SD 약 0.037 흔들리므로 점수 예측은 하지 않는다.</li></ul></div></div></section><section id="s7" class="page"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">07 / 운영 기준</span><h2 class="section-title">운영 기준 (비용표)</h2></div><button type="button" class="bkbtn" data-book="7" data-ch="CHAPTER 07">자세히 보기</button></div><div class="verdict"><b>운영안은 정상 확률 ×0.1이다.</b> 놓침 1건 = 헛경보 10건(기준안)으로 가정하면 전수 검사보다 9% 싸다. 다만 <b>비용을 정하는 것은 모델이 아니라 경보 기준(비용 비율)이다.</b></div><div class="take"><div class="good"><span class="k">5 : 1</span><span class="n">24% 저렴</span><span class="t">×0.1이 전수 검사보다 저렴 → 모델이 분명히 도움</span></div><div class="mid"><span class="k">10 : 1 (기준안)</span><span class="n">9~14% 저렴</span><span class="t">이점이 줄고, 샷의 70~80%를 검사해야 함</span></div><div class="bad"><span class="k">20 : 1</span><span class="n">이점 없음</span><span class="t">전수 검사와 구별 안 됨</span></div></div>
+<div class="calc" id="calc"><h3>직접 바꿔 보기: 비용 비율을 넣으면 운영 기준이 바뀝니다</h3>
+<div class="cgrid"><div class="cg-l"><ul class="steps"><li><b>넣는 것</b>모델 · 검증 조건 · 놓침 비용 비율 · 하루 샷 수</li><li><b>읽는 것</b>결과 칸(최저 비용 기준과 전수 검사 대비) → 곡선과 「계산기 결과표」는 그 근거, 결과표의 「운영안」 행이 고른 기준(×0.1)</li></ul>
+<div class="inputs">
+<div class="row"><span class="lbl">모델</span><span class="tabs" id="cm"></span></div>
+<div class="row"><span class="lbl">검증 조건</span><span class="tabs" id="cs"></span></div>
+<div class="row"><span class="lbl">놓침 비용 비율<small class="note">(헛경보 1건 = 1)</small></span><input type="range" id="cr" min="1" max="50" value="10" aria-label="놓침 비용 비율"><span class="big" id="crv"></span>
+<span class="tabs" id="cq"></span></div>
+<div class="row"><span class="lbl">하루 샷 수</span><input type="number" id="cn" value="3800" min="100" step="100" aria-label="하루 샷 수"><span class="note">사이클 22.6초·24시간이면 약 3,800</span></div>
+</div>
+</div>
+<div class="cg-r"><div class="msg" id="cmsg" aria-live="polite"></div>
+<div class="chartbox" id="cch"></div></div></div>
+</div>
+<div class="mdl-src" id="mdl7" hidden><h3 class="mdl-t" id="mdl7-t">계산기 결과표</h3><div class="calc"><div class="ctbl"><div class="hint">현장이 "놓침 1건 = 헛경보 몇 건"인지 알려 주면 여기에 넣어 바로 최저 비용 기준을 확인할 수 있습니다.</div>
+<div class="table-wrap"><table class="num"><thead><tr><th>결정 기준<small>정상 확률 배율</small></th><th>하루 검사 대상<small>샷</small></th><th>놓침<small>건</small></th><th>헛경보<small>건</small></th><th class="l">총비용<small>헛경보 1건 = 1</small></th></tr></thead><tbody id="cb"></tbody></table></div>
+<div class="foot">비율을 바꾸면 두 모델의 비용 곡선이 함께 움직인다. 「가정과 출처·정적 비용표」 창의 정적 비용표(시드 4개 평균)와 달리 이 계산기는 시드 7·123·2026 평균이라 몇 건 차이가 납니다.</div></div></div></div><div class="mdl-src" id="mdl8" hidden><h3 class="mdl-t" id="mdl8-t">고른 운영안과 근거</h3><div class="prose"><ul class="summary cols">
+<li><span class="sn"><b>고른 운영안: 정상 ×0.1</b>(하루 2,575샷 검사, 놓침 87건, 헛경보 1,810건).</span><span class="sn">기준안 10:1에서 최저는 ×0.05(2,523)이지만 검사 대상이 3,032샷(80%)이라 ×0.1(2,677, 검사 2,575샷 68%)을 골랐다. 비용은 최저와 6% 차이이고 전수 검사(2,948)보다 9% 싸다.</span></li>
+<li><u>제출 CSV(가장 높은 확률의 라벨, 정상 ×1.0)와 운영안(정상 ×0.1)은 다르다</u>: CSV는 macro F1을 높이려는 7종 분류이고(×0.1로 낮추면 채점 구조를 반영한 내부 검증 점수가 0.62에서 0.49로 내려간다), 운영안은 놓침 비용을 반영해 불량을 더 자주 부르는 기준이다.</li>
+<li><b>현장이 실제 비용 비율을 알려 주면 계산기와 「가정과 출처·정적 비용표」에 바로 대입해 운영 기준을 확정한다.</b></li>
+</ul></div></div><div class="mdl-src" id="mdl9" hidden><h3 class="mdl-t" id="mdl9-t">가정과 출처 · 정적 비용표(시드 4개 평균)</h3><div class="prose"><ul>
+<li><u>하루 생산량은 계산</u>했다: 데이터의 사이클 시간 중앙값 22.6초, 24시간 연속 가동이면 86,400÷22.6 ≈ <b>하루 3,800샷</b>(가동 시간은 가정, 8시간 교대면 약 1,270샷). 불량률 22.4%는 학습 데이터에서 계산한 처음 보는 입력 기준이라 하루 불량 약 850건·정상 약 2,950건이다.</li>
+<li><u>비용 비율은 현장 자료가 없어 가정</u>한다: 헛경보(정상 샷을 불량으로 불러 한 번 더 검사) 1건 = 1, 놓친 불량 1건 = 5·10·20. 비용 비율은 부품의 안전 등급·보증/리콜 비용·재검사 비용에 따라 현장마다 다르므로 정확한 값을 알 수 없다.</li>
+<li>그래서 <b>기준안은 10:1</b>로 두고(품질비용 이론의 "1-10-100 경험 법칙", 검사·재작업 대비 고객에게 나간 불량의 비용이 약 10배, 엄밀한 표준 수치는 아님) 5:1과 20:1에서도 같은 표를 만들어 결론이 유지되는지 본다.</li>
+<li><b>결정 기준</b>은 정상 확률에 곱하는 배율(작을수록 불량으로 더 자주 부른다, <code>main.py</code>의 <code>ALERT_NORMAL_SCALE</code>)이다. 건수는 학습 데이터 검증(처음 보는 입력, 시드 4개 평균이라 그림 4의 시드 3개 평균과 몇 건 다름)이며 리더보드 점수는 쓰지 않았다.</li></ul>
+<div class="table-wrap"><table class="num"><tr><th>결정 기준<small>정상 확률 배율</small></th><th>하루 검사 대상<small>샷</small></th><th>놓침<small>건</small></th><th>헛경보<small>건</small></th><th>총비용 5:1</th><th>총비용 10:1 (기준)</th><th>총비용 20:1</th></tr>
+<tr><td>검사 안 함</td><td>0</td><td>852</td><td>0</td><td>4,258</td><td>8,516</td><td>17,033</td></tr>
+<tr><td>정상 ×1.0 (제출 CSV 기준)</td><td>154</td><td>759</td><td>61</td><td>3,856</td><td>7,650</td><td>15,239</td></tr>
+<tr><td>정상 ×0.5</td><td>591</td><td>565</td><td>305</td><td>3,132</td><td>5,959</td><td>11,613</td></tr>
+<tr><td>정상 ×0.3</td><td>1,179</td><td>371</td><td>699</td><td>2,556</td><td>4,413</td><td>8,127</td></tr>
+<tr><td>정상 ×0.2</td><td>1,720</td><td>248</td><td>1,117</td><td>2,359</td><td>3,601</td><td>6,085</td></tr>
+<tr class="op"><td><b>정상 ×0.1</b><span class="tag">운영안</span></td><td>2,575</td><td>87</td><td>1,810</td><td><b>2,244</b></td><td>2,677</td><td>3,543</td></tr>
+<tr><td>정상 ×0.05</td><td>3,032</td><td>31</td><td>2,212</td><td>2,368</td><td><b>2,523</b></td><td><b>2,835</b></td></tr>
+<tr><td>전수 검사</td><td>3,800</td><td>0</td><td>2,948</td><td>2,948</td><td>2,948</td><td>2,948</td></tr></table></div>
+<ul>
+<li><b>결론은 비용 비율에 민감하다</b>: 5:1이면 ×0.1이 전수 검사보다 24% 싸서 모델이 분명히 도움이 되고(2,244), 10:1이면 이점이 9~14%로 줄어 샷의 70~80%를 검사해야 하고, 20:1이면 ×0.1(3,543)은 전수 검사(2,948)보다 비싸고 ×0.05(2,835)도 4% 차이라 전수 검사와 구별되지 않는다.</li>
+<li>처음 보는 입력에서 불량을 구분하는 정보 자체가 약하기 때문이다(AUC 0.75). 그러므로 이 모델은 놓침이 아주 비싼 현장보다 비용 비율이 낮은 현장, 또 같은 조건이 반복되는 라인(제출 CSV 기준 ×1.0이 가장 잘 맞는 구성)에 적합하다.</li>
+<li>건수는 놓침·헛경보만 센 것이며 종류를 틀린 건과 종류별 비용 차이는 넣지 않았다.</li>
+<li>보조로 위험(1−정상 확률) 순 상위 20~30%만 검사하는 방식도 있다(그림 5).</li></ul></div></div><div class="mdl-src" id="mdl10" hidden><h3 class="mdl-t" id="mdl10-t">모델을 바꾸면 비용이 줄어드는가 · 위험 순위(그림 5)</h3><div class="prose"><p><span class="sn"><b>모델을 바꾸면 비용이 줄어드는가</b> (1,000샷당, 10:1 기준). 경보 기준이 같은 ×1.0이면 2안이 1안보다 35% 이상 싸 보인다(새 입력 1,307 대 2,024). 그러나 모델마다 기준을 따로 맞추면 차이가 사라진다.</span></p>
+<div class="table-wrap"><table class="num"><tr><th>모델</th><th>×1.0 비용 (새 입력 / 새 구간)</th><th>자기 최저 비용 (새 입력 / 새 구간)</th><th>최저일 때 기준 (새 입력 / 새 구간)</th></tr>
+<tr><td>1안</td><td>2,024 / 2,218</td><td>660 / 732</td><td>×0.05 / ×0.1</td></tr>
+<tr><td>2안</td><td>1,307 / 1,664</td><td>684 / 738</td><td>×0.1 / ×0.2</td></tr>
+<tr><td>전수 검사</td><td colspan="3">776 (모든 샷 재검사)</td></tr></table></div>
+<ul>
+<li>두 모델의 최저 비용은 4% 안(새 입력 660~684, 새 구간 732~738)이고, 전수 검사보다 새 입력에서 12~15%, 새 구간에서 5~6% 싸다.</li>
+<li><b>비용을 정하는 것은 모델 종류보다 경보 기준(비용 비율)이다.</b> 5:1이면 1안은 588 / 650으로 절감 24% / 16%, 20:1이면 737 / 784로 전수 검사(776)와 5% 이내이거나 더 나쁘다.</li>
+<li>그래도 2안은 입력 25개·숲 2개라 설명이 쉽고 <b>뒤 사건 입력이 필요 없어 실시간 판정이 가능</b>하다는 점에서 현장 운영 후보로 둔다. 기준을 현장 비율로 정하는 것은 같다.</li></ul>
+<figure><img src="../보고서_그림/그림4_혼동행렬_위험순위.png"><figcaption>그림 5. 새 입력에서의 혼동행렬(실제 대비 모델 예측)과 위험 순위 곡선. 검사 10/20/30% → 불량 24/42/58% 발견(무작위는 10/20/30%). 한 번의 그룹 교차검증 결과라(불량 139건 포착, 경보 82건) 그림 4의 시드 3개 평균(122건, 73건)과 몇 건 다르다.</figcaption></figure></div></div><script>
+const CALC={"단위": "1,000샷당 평균(시드 7·123·2026)", "불량": 224.1, "정상": 775.9, "모델": {"1안(최종 제출안)": {"새 입력": [{"scale": 1.0, "missed": 201.0, "fa": 13.8}, {"scale": 0.8, "missed": 188.4, "fa": 26.4}, {"scale": 0.5, "missed": 149.5, "fa": 78.6}, {"scale": 0.3, "missed": 100.6, "fa": 181.6}, {"scale": 0.2, "missed": 66.4, "fa": 293.3}, {"scale": 0.1, "missed": 22.4, "fa": 476.1}, {"scale": 0.05, "missed": 7.7, "fa": 582.5}], "새 생산 구간": [{"scale": 1.0, "missed": 221.3, "fa": 4.4}, {"scale": 0.8, "missed": 218.1, "fa": 10.2}, {"scale": 0.5, "missed": 199.6, "fa": 42.1}, {"scale": 0.3, "missed": 132.3, "fa": 161.7}, {"scale": 0.2, "missed": 73.7, "fa": 325.4}, {"scale": 0.1, "missed": 16.3, "fa": 568.5}, {"scale": 0.05, "missed": 5.1, "fa": 682.7}]}, "2안(현장성을 높인 또 다른 안)": {"새 입력": [{"scale": 1.0, "missed": 116.5, "fa": 142.0}, {"scale": 0.8, "missed": 93.4, "fa": 196.0}, {"scale": 0.5, "missed": 55.6, "fa": 324.1}, {"scale": 0.3, "missed": 30.1, "fa": 463.8}, {"scale": 0.2, "missed": 13.5, "fa": 554.4}, {"scale": 0.1, "missed": 3.4, "fa": 650.2}, {"scale": 0.05, "missed": 1.0, "fa": 701.5}], "새 생산 구간": [{"scale": 1.0, "missed": 154.7, "fa": 116.5}, {"scale": 0.8, "missed": 121.2, "fa": 180.8}, {"scale": 0.5, "missed": 64.2, "fa": 350.1}, {"scale": 0.3, "missed": 24.1, "fa": 526.7}, {"scale": 0.2, "missed": 10.0, "fa": 637.8}, {"scale": 0.1, "missed": 3.9, "fa": 712.9}, {"scale": 0.05, "missed": 0.8, "fa": 753.3}]}}};
+let cm=Object.keys(CALC["모델"])[0],cs="새 입력";
+const $=id=>document.getElementById(id), fmt=x=>Math.round(x).toLocaleString();
+function tabs(el,items,get,set){el.innerHTML="";items.forEach(v=>{const b=document.createElement("button");b.className="tab"+(get()===v?" on":"");b.textContent=v;b.onclick=()=>{set(v);draw()};el.appendChild(b)})}
+function draw(){
+ const r=+$("cr").value, N=+$("cn").value||3800, k=N/1000; $("crv").textContent=r+" : 1";
+ tabs($("cm"),Object.keys(CALC["모델"]),()=>cm,v=>cm=v);
+ tabs($("cs"),["새 입력","새 생산 구간"],()=>cs,v=>cs=v);
+ tabs($("cq"),[5,10,20],()=>+$("cr").value,v=>$("cr").value=v);
+ const rows=CALC["모델"][cm][cs].map(o=>({name:"정상 ×"+o.scale,s:o.scale,ins:(CALC["불량"]-o.missed+o.fa)*k,m:o.missed*k,f:o.fa*k}));
+ rows.unshift({name:"검사 안 함",ins:0,m:CALC["불량"]*k,f:0});
+ rows.push({name:"전수 검사",ins:1000*k,m:0,f:CALC["정상"]*k});
+ rows.forEach(o=>o.c=r*o.m+o.f);
+ const full=rows[rows.length-1].c, cand=rows.filter(o=>o.name.startsWith("정상")), best=cand.reduce((a,b)=>a.c<b.c?a:b), max=Math.max(...rows.map(o=>o.c));
+ $("cb").innerHTML=rows.map(o=>`<tr class="${o===best?"best":""}${o.s===0.1?" op":""}"><td>${o.name}${o.s===0.1?'<span class="tag">운영안</span>':""}${o===best?" ◀ 최저":""}</td><td>${fmt(o.ins)}</td><td>${fmt(o.m)}</td><td>${fmt(o.f)}</td><td class="l"><span class="cv">${fmt(o.c)}</span><span class="bar" style="width:${Math.max(2,o.c/max*140)}px"></span></td></tr>`).join("");
+ drawChart(r,k);
+ const sv=(1-best.c/full)*100;
+ $("cmsg").innerHTML=`<span class="rlab">결과 · ${cm} · ${cs} · ${r}:1 · 하루 ${fmt(N)}샷</span><span class="rmain">모델 기준 중 최저 비용은 <b>${best.name}</b> → 전수 검사와 비교해 <b>${sv>=0?sv.toFixed(0)+"% 절감":(-sv).toFixed(0)+"% 더 비쌈"}</b></span><span class="rsub">검사 ${fmt(best.ins)}샷 · 놓침 ${fmt(best.m)}건 · 헛경보 ${fmt(best.f)}건 · 비용 ${fmt(best.c)} (전수 검사 ${fmt(full)})${sv<5?" → 이 비율에서는 모델 이점이 거의 없습니다.":""}</span>`;
+}
+function drawChart(r,k){
+ const names=Object.keys(CALC["모델"]),cols=["var(--accent)","var(--yellow)"],W=640,H=280,L=56,R=24,T=30,B=52;
+ const sc=CALC["모델"][names[0]][cs].map(o=>o.scale),n=sc.length;
+ const ser=names.map(m=>CALC["모델"][m][cs].map(o=>(r*o.missed+o.fa)*k)),full=CALC["정상"]*k;
+ const ymax=Math.max(full,...ser.flat())*1.1,X=i=>L+i*(W-L-R)/(n-1),Y=v=>T+(1-v/ymax)*(H-T-B);
+ let g="";
+ for(let j=0;j<=4;j++){const v=ymax*j/4,y=Y(v);g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" style="stroke:var(--border)"/><text x="${L-8}" y="${y+4}" text-anchor="end">${fmt(v)}</text>`}
+ sc.forEach((s,i)=>g+=`<text x="${X(i)}" y="${H-B+18}" text-anchor="middle">×${s}</text>`);
+ g+=`<text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle">정상 확률 배율 (오른쪽일수록 불량으로 더 자주 부름 → 검사 대상 증가)</text>`;
+ g+=`<line x1="${L}" x2="${W-R}" y1="${Y(full)}" y2="${Y(full)}" style="stroke:var(--muted);stroke-width:2;stroke-dasharray:6 5"/><text x="${L+6}" y="${Y(full)+16}" text-anchor="start" class="val">전수 검사 ${fmt(full)}</text>`;
+ ser.forEach((arr,mi)=>{
+  g+=`<polyline fill="none" style="stroke:${cols[mi]};stroke-width:3" points="${arr.map((v,i)=>X(i)+","+Y(v)).join(" ")}"/>`;
+  arr.forEach((v,i)=>g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" style="fill:${cols[mi]}"/>`);
+  const bi=arr.indexOf(Math.min(...arr));
+  g+=`<circle cx="${X(bi)}" cy="${Y(arr[bi])}" r="8" style="fill:none;stroke:${cols[mi]};stroke-width:2.5"/><text x="${X(bi)-(bi>=n-1?10:0)}" y="${Y(arr[bi])+(mi?24:-14)}" text-anchor="${bi>=n-1?"end":"middle"}" class="val">최저 ${fmt(arr[bi])}</text>`;
+ });
+ const lg=names.map((m,i)=>`<span><i class="dot" style="background:${cols[i]}"></i>${m}</span>`).join("")+`<span><i class="dot" style="background:var(--muted)"></i>전수 검사</span>`;
+ $("cch").innerHTML=`<div class="legend">${lg}</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="경보 기준별 총비용 곡선">${g}</svg>`;
+}
+$("cr").oninput=draw;$("cn").oninput=draw;draw();
+</script>
+
+
+</section><section id="s8" class="page"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">08 / 원인 분석</span><h2 class="section-title">불량 원인 분석 (불량 유형 3종)</h2></div><button type="button" class="bkbtn" data-book="8" data-ch="CHAPTER 08">자세히 보기</button></div><div class="verdict"><b>유형 2는 High_Velocity &gt; 2.537, 유형 1은 Spray_Time &gt; 8.1 구간에서 불량이 적었다.</b> 상관일 뿐 원인이 아니므로, 시험 생산(A/B)으로 확인하기 전까지는 "관리 후보"로만 쓴다.</div><div class="lead"><div class="lead-l"><div class="take-cap">구간 밖 → 구간 안 불량률</div><div class="take"><div class="good"><span class="k">유형 2 · Short_Shot</span><span class="n">15.8 → 5.3%</span><span class="t">High_Velocity &gt; 2.537</span></div><div class="good"><span class="k">유형 2 · Blow_Hole</span><span class="n">12.3 → 0.7%</span><span class="t">High_Velocity &gt; 2.543</span></div><div class="good"><span class="k">유형 1 · Exfoliation</span><span class="n">9.8 → 1.8%</span><span class="t">Spray_Time &gt; 8.1</span></div></div></div><div class="bchart cmp"><h4>조건 5개: 구간 안과 밖의 불량률</h4><div class="sub">막대가 짧을수록 불량이 적다. 괄호 속 구간은 Wilson 95% 신뢰구간. 구간 경계를 같은 데이터에서 골랐으므로 상관일 뿐 원인이 아니다.</div><div class="legend"><span><i class="dot c1"></i>조건 구간 안</span><span><i class="dot c3"></i>조건 구간 밖</span></div><div class="brow"><div class="bl">Short_Shot<em class="chip">유형 2</em><small>High_Velocity &gt; 2.537</small><small class="dir">구간 안이 낮음 · 구간 비중 24%</small></div><div><div class="v"><em>안</em><div class="trk"><i class="c1" style="width:21.2%"></i></div><span><b>5.3%</b><small>(3.7~7.4)</small></span></div><div class="v"><em>밖</em><div class="trk"><i class="c3" style="width:63.2%"></i></div><span>15.8%<small>(14.2~17.6)</small></span></div></div></div><div class="brow"><div class="bl">Blow_Hole<em class="chip">유형 2</em><small>High_Velocity &gt; 2.543</small><small class="dir">구간 안이 낮음 · 구간 비중 20%</small></div><div><div class="v"><em>안</em><div class="trk"><i class="c1" style="width:2.8%"></i></div><span><b>0.7%</b><small>(0.2~1.9)</small></span></div><div class="v"><em>밖</em><div class="trk"><i class="c3" style="width:49.2%"></i></div><span>12.3%<small>(10.9~13.9)</small></span></div></div></div><div class="brow"><div class="bl">Blow_Hole<em class="chip">유형 2</em><small>Coolant_Temp ≤ 26.4</small><small class="dir up">구간 안이 높음 · 구간 비중 22%</small></div><div><div class="v"><em>안</em><div class="trk"><i class="c1" style="width:93.6%"></i></div><span><b>23.4%</b><small>(20.0~27.3)</small></span></div><div class="v"><em>밖</em><div class="trk"><i class="c3" style="width:24.8%"></i></div><span>6.2%<small>(5.2~7.4)</small></span></div></div></div><div class="brow"><div class="bl">Exfoliation<em class="chip">유형 1</em><small>Spray_Time &gt; 8.1</small><small class="dir">구간 안이 낮음 · 구간 비중 38%</small></div><div><div class="v"><em>안</em><div class="trk"><i class="c1" style="width:7.2%"></i></div><span><b>1.8%</b><small>(1.2~2.7)</small></span></div><div class="v"><em>밖</em><div class="trk"><i class="c3" style="width:39.2%"></i></div><span>9.8%<small>(8.5~11.2)</small></span></div></div></div><div class="brow"><div class="bl">Short_Shot<em class="chip">유형 1</em><small>Melting_Furnace_Temp &gt; 711</small><small class="dir">구간 안이 낮음 · 구간 비중 25%</small></div><div><div class="v"><em>안</em><div class="trk"><i class="c1" style="width:10.4%"></i></div><span><b>2.6%</b><small>(1.7~4.0)</small></span></div><div class="v"><em>밖</em><div class="trk"><i class="c3" style="width:25.6%"></i></div><span>6.4%<small>(5.5~7.5)</small></span></div></div></div></div></div><div class="mdl-src" id="mdl11" hidden><h3 class="mdl-t" id="mdl11-t">구간별 불량률 (그림 6)</h3><div class="prose"><figure><img src="../보고서_그림/그림5_구간별_불량률.png"><figcaption>그림 6. 구간별 불량률. 주황 막대는 평균보다 크게 낮거나 높은 구간.</figcaption></figure></div></div><div class="mdl-src" id="mdl12" hidden><h3 class="mdl-t" id="mdl12-t">현장 제안과 한계</h3><div class="prose"><div class="row2"><div class="card"><b>현장 제안 (관리 후보)</b><ul>
+<li>유형 2 제품에서 High_Velocity를 2.537 초과 범위로 관리하면 Short_Shot이 15.8%에서 5.3%, Blow_Hole이 12.3%에서 0.7%로 줄 가능성이 있다.</li>
+<li>유형 1 제품에서 Spray_Time이 8.1을 넘는 샷은 Exfoliation이 9.8%에서 1.8%였다.</li></ul></div>
+<div class="card warn"><b>한계 (원인이라고 말할 수 없는 이유)</b><ul>
+<li><b>구간 경계를 같은 데이터에서 골랐다</b> — 따로 떼어 둔 확인용 데이터가 없어 실제 효과는 이보다 작을 수 있다.</li>
+<li><b>원인이 아니라 상관이다</b> — 센 것은 "그 구간에서 불량이 적었다"는 것뿐이다. 속도가 높은 샷은 금형 온도·작업 시기·설비 상태와 같이 움직였을 수 있다.</li>
+<li><b>값 모양도 원인 해석을 막는다</b> — High_Velocity는 설정 묶음, Spray_Time은 우연이나 시기, 환경 열은 시기의 표지일 수 있다(「분석 방법·구간별 표」 창).</li>
+<li><b>확인 방법</b> — 해당 변수만 구간 안팎으로 바꿔 시험 생산(A/B)하고 같은 제품·같은 시기에서 불량률을 비교한다. 그 전까지는 "관리 후보"로만 쓴다.</li></ul></div></div></div></div><div class="mdl-src" id="mdl13" hidden><h3 class="mdl-t" id="mdl13-t">분석 방법 · 값 모양 · 구간별 불량률 표</h3><div class="prose"><ul>
+<li><b>방법</b>: 불량 종류마다 "그 종류인가 아닌가"로 RF를 따로 학습하고 처음 보는 입력에서 순열 중요도로 중요한 조건을 뽑은 뒤(그룹 CV AUC: Short_Shot 0.75, Blow_Hole 0.90, Exfoliation 0.83), 그 조건을 구간으로 나눠 구간별 불량률을 직접 셌다. 제품 유형이 불량 종류를 가르므로 유형별로 셌다. 괄호는 Wilson 95% 신뢰구간.</li>
+<li>High_Velocity 값은 몇 개의 값 덩어리로 뭉쳐 있어 설정 묶음의 표지일 수 있고, Spray_Time은 8.0~8.1만 높고 옆은 낮은 비단조 모양이라 우연이나 시기 영향일 수 있다.</li>
+<li>환경 열(공장 온도·습도, 냉각수 온도)은 시기 표지일 가능성이 커 인과로 읽지 않는다(묶음 단위 분석에서 환경 열을 빼면 점수가 가장 크게 하락, −0.012).</li></ul>
+<div class="table-wrap"><table class="num"><tr><th>불량(대상)</th><th class="l">조건 구간</th><th>구간 안</th><th>구간 밖</th><th>구간 비중</th></tr>
+<tr><td>Short_Shot (유형 2, 2,324행)</td><td class="l">High_Velocity &gt; 2.537</td><td><b>5.3%</b> (3.7~7.4)</td><td>15.8% (14.2~17.6)</td><td>24%</td></tr>
+<tr><td>Blow_Hole (유형 2)</td><td class="l">High_Velocity &gt; 2.543</td><td><b>0.7%</b> (0.2~1.9)</td><td>12.3% (10.9~13.9)</td><td>20%</td></tr>
+<tr><td>Blow_Hole (유형 2)</td><td class="l">Coolant_Temp ≤ 26.4</td><td>23.4% (20.0~27.3)</td><td>6.2% (5.2~7.4)</td><td>22%</td></tr>
+<tr><td>Exfoliation (유형 1, 2,950행)</td><td class="l">Spray_Time &gt; 8.1</td><td><b>1.8%</b> (1.2~2.7)</td><td>9.8% (8.5~11.2)</td><td>38%</td></tr>
+<tr><td>Short_Shot (유형 1)</td><td class="l">Melting_Furnace_Temp &gt; 711</td><td>2.6% (1.7~4.0)</td><td>6.4% (5.5~7.5)</td><td>25%</td></tr></table></div></div></div></section><section id="s9" class="page"><div class="pagehead ph-row"><div class="ph-t"><span class="eyebrow">09 / 현장 언어</span><h2 class="section-title">현장 언어로 번역</h2></div><button type="button" class="bkbtn" data-book="9" data-ch="CHAPTER 09">자세히 보기</button></div><div class="prose"><ul class="cols">
+<li><span class="sn"><b>새로운 조건의 샷</b>(학습에 같은 입력이 없음): "불량 100건 중 약 10건을 잡고 90건을 놓칩니다.</span><span class="sn">정상 100건 중 약 2건을 불량이라 울립니다.</span><span class="sn">울린 경보 195건 중 122건(63%)이 진짜 불량이었습니다." 1,000샷으로 환산(불량 22.4%)하면 불량 224건 중 23건을 잡고 정상 776건 중 14건에 헛경보.</span></li>
+<li><b>이미 본 적 있는 조건</b>이 다시 나오면: 불량 100건 중 58건을 잡습니다(시험 샷의 약 58%가 이 경우).</li>
+<li><span class="sn"><b>불량 종류별</b>(새 입력, 종류까지 맞힘, 그림 5의 한 번 실행 기준): Stain 100건 중 29건, Deformation 106건 중 21건, Blow_Hole 233건 중 18건, Exfoliation 198건 중 12건, Short_Shot 469건 중 12건, 기타불량 76건 중 0건.</span></li>
+
+<li>그래서 "불량이다/아니다" 자동 판정 대신 <b>"위험 순위 상위 20%를 먼저 검사"</b>로 쓰는 것을 권한다(7절). 정확도 87%는 정상이 77%라 의미가 작아 단독으로 말하지 않는다.</li></ul></div><div class="mdl-src" id="mdl14" hidden><h3 class="mdl-t" id="mdl14-t">"불량을 너무 많이 놓치는 것 아닌가"에 대한 답</h3><div class="prose"><ul><li><span class="sn"><b>"불량을 너무 많이 놓치는 것 아닌가"에 대한 답</b>: 맞다.</span><span class="sn">새 입력 기준 1안은 불량 1,182건 중 1,060건(90%)을 놓친다(그림 4). 정확도 79%는 정상이 78%라서 "전부 정상"으로 답해도 나오는 값이라 착시다.</span><span class="sn">원인은 입력값만으로 불량을 가르는 정보가 약해서이며(AUC 0.74~0.75, 시험한 모든 모델이 같음), 2안도 52%를 놓친다.</span><span class="sn">같은 입력이 학습에 있는 샷(시험의 약 58%)에서는 약 58%를 잡는다.</span><span class="sn"><b>대응은 두 가지다.</b> ① 같은 1안에서 경보 기준만 낮춘다(정상 ×0.1이면 새 입력 불량의 약 90%를 잡지만 정상의 약 61%에 헛경보, 검사 대상은 전체의 약 2/3). ② 앞 사건만으로 실시간 판정이 필요하거나 설명이 우선이면 2안을 쓴다(4·7절). 놓침·헛경보 중 무엇이 비싼지는 현장 비용 비율이 정한다.</span></li></div></div></section><section id="s10" class="page"><div class="pagehead"><span class="eyebrow">10 / AI 사용</span><h2 class="section-title">AI 사용과 AI가 틀린 것</h2></div><div class="prose"><p>AI(Claude)를 코드 작성·실험 설계·결과 해석 보조에 사용했고, 숫자는 모두 직접 실행해 확인한 값만 보고서에 썼다. 무엇을 물었고 무엇을 검증해 기각했는지:</p>
+<div class="table-wrap"><table><tr><th>AI 조언</th><th>검증 결과</th></tr>
+<tr><td>"쌍둥이의 라벨을 그대로 찾아 쓰면 0.65~0.70까지 오른다"</td><td>모의 계산으로 약 0.58에 그침(직접 계산해 기각). 규칙상 이웃 라벨은 쓸 수도 없어 이웃 <i>입력</i>만 특징으로 채택</td></tr>
+<tr><td>"내부 점수(리더보드풍)가 리더보드를 예측한다"</td><td>1안은 어림 0.623 대 실제 0.5987로 0.024 높았고 2안은 약 0.02 낮아 오차 방향이 모델마다 달랐다. 낙관 편향을 보정해 해석하고, 내부 점수로 순위를 예측하지 않음</td></tr>
+<tr><td>"이동평균·순번 특징·클래스 보정으로 +0.005"</td><td>시드·표본 흔들림(0.005~0.03)보다 작거나 규칙 회색지대라 채택하지 않음. 순위 예측("상위권")도 근거가 없어 철회</td></tr>
+<tr><td>"탐지율을 올리면 점수도 오른다"(잎 3·5, SMOTE식 보강)</td><td>탐지율 63~67%로 올랐지만 점수는 0.6125→0.6033 등으로 내려감. 헛경보가 늘어 정확도·정밀도가 깎임(맞바꿈)</td></tr><tr><td>"정상 확률에 ×0.3~0.4를 곱하면 0.6을 넘는다"(다른 AI 제안)</td><td>새 입력만 보면 F1 0.25→0.335로 맞지만 리더보드풍은 0.623→0.599(×0.4)·0.580(×0.3)로 내려갔고, 선택·평가를 분리해도 평균 −0.002라 점수용으로 기각. 운영안(놓침 비용 반영)에서만 사용</td></tr>
+<tr><td>"다른 구성의 모델과 섞으면 새 입력·탐지율·정확도가 함께 오른다"</td><td>1안에 비교 모델 확률을 15~50% 섞어 보니 탐지율은 오르지만 정확도와 점수는 같거나 내려가 세 지표를 동시에 올리는 조합은 없었음(맞바꿈)</td></tr>
+</table></div></div></section></main><dialog class="mdl" id="mdl" aria-label="확인하기"><div class="bk-dim" id="bkDim"></div><div class="bk" id="bk"><div class="bk-book" id="bkBook" aria-live="polite"></div><button type="button" class="mdl-x" id="mdlX" aria-label="닫기">×</button><div class="bk-m" id="bkM" aria-hidden="true"></div></div></dialog><div class="bk bk-host" id="bkHost" aria-hidden="true"><div class="bk-m" id="bkM2"></div></div><nav class="pnav" id="pnav" aria-label="절 넘김"><div class="pnav-in"><button type="button" class="pn-prev" id="pnPrev"><i aria-hidden="true">←</i><span class="pn-t"></span></button><div class="pn-mid"><span class="pn-pos" id="pnPos" aria-live="polite"></span><span class="pn-bar" aria-hidden="true"><i id="pnFill"></i></span></div><button type="button" class="pn-next" id="pnNext"><span class="pn-t"></span><i aria-hidden="true">→</i></button><span class="pn-key" aria-hidden="true">← → 키로도 넘길 수 있어요</span></div></nav>
+<script>
+const pages=[...document.querySelectorAll('.page')],links=[...document.querySelectorAll('.sidebar nav a')],names=["요약", "데이터", "설계", "베이스라인", "비교 실험", "학습곡선", "분할 비교", "운영 기준", "원인 분석", "현장 언어", "AI 사용"];
+function show(n,push){n=Math.max(0,Math.min(pages.length-1,n));pages.forEach((p,i)=>p.classList.toggle('on',i===n));links.forEach((a,i)=>a.classList.toggle('on',i===n));
+ if(push)history.replaceState(null,'','#s'+n);window.scrollTo(0,0);document.title=names[n]+' | 주조 불량 유형 예측 1조 보고서';updNav(n);if(n===0&&tPrevPage!==0)tAuto();tPrevPage=n}
+links.forEach((a,i)=>a.addEventListener('click',e=>{e.preventDefault();show(i,true)}));
+const pnav=document.getElementById('pnav'),pp=document.getElementById('pnPrev'),pnx=document.getElementById('pnNext');
+function cur(){return pages.findIndex(p=>p.classList.contains('on'))}
+pp.onclick=()=>show(cur()-1,true);pnx.onclick=()=>show(cur()+1,true);
+function updNav(n){const L=pages.length-1,z=v=>String(v).padStart(2,'0'),pv=n>0?names[n-1]:'',nx=n<L?names[n+1]:'';pp.disabled=!pv;pnx.disabled=!nx;
+ pp.querySelector('.pn-t').textContent=pv||'처음';pnx.querySelector('.pn-t').textContent=nx||'마지막';
+ pp.setAttribute('aria-label',pv?'이전 절: '+pv:'이전 절 없음');pnx.setAttribute('aria-label',nx?'다음 절: '+nx:'다음 절 없음');
+ document.getElementById('pnPos').innerHTML='<b>'+z(n)+'</b><span class="pn-name">'+names[n]+'</span><span class="pn-of">/ '+z(L)+'</span>';
+ document.getElementById('pnFill').style.width=((n+1)/(L+1)*100)+'%'}
+// 안내 투어(캐스티). 단계 표시·위치 숫자는 .page 밖에서 JS 로만 만든다(본문 숫자 비교에 안 섞임).
+const GKEY='dc1-guide-seen',TOUR=[
+ {sel:['.sidebar nav'],t:'안녕하세요, 1조 보고서 길잡이 캐스티예요. {side} 목차를 누르면 그 절로 바로 넘어가고, 지금 보는 절은 파랗게 표시돼요.'},
+ {sel:['#pnav .pnav-in'],t:'화면 아래 넘김 바로 이전·다음 절로 넘어가요. 키보드 ← → 키로도 넘길 수 있어요.'},
+ {sel:['#theme'],t:'이 작은 버튼으로 발표장 밝기에 맞춰 어두운 화면과 밝은 화면을 바꿀 수 있어요.'},
+ {page:5,sel:['#s5 figure img'],t:'그림을 누르면 크게 확대돼요. 한 번 더 누르거나 Esc 키를 누르면 닫혀요.'},
+ {page:6,sel:['#s6 .verdict','#s6 .lead-l'],t:'각 절 맨 위 한 줄이 결론이고, 큰 숫자 카드가 그 근거예요. 카드 위 작은 글씨가 무엇의 숫자인지 알려 줘요.'},
+ {page:6,sel:['#s6 .bkbtn'],t:'이 버튼 하나로 이 장의 자세한 내용을 책처럼 넘겨 볼 수 있어요. 모서리를 끌거나 오른쪽 쪽을 누르면 넘어가요(왼쪽 쪽은 이전, ← → 키도 돼요). Esc 로 닫아요.'},
+ {page:7,sel:['#calc .inputs'],t:'운영 기준 계산기예요. 이 상자에 값을 넣으면 결과 칸에 비용이 가장 적은 경보 기준이 나와요.'},
+ {sel:['.side-tools'],t:'PDF 보고서와 GitHub 코드는 여기서 열 수 있어요. 캐스티 얼굴 버튼을 누르면 이 안내를 언제든 다시 볼 수 있어요.'}];
+let tI=0,tStart=0,tY=0,tEls=null,tSeq=0,tOn=false;
+function tRect(sels){let r=null;sels.forEach(q=>document.querySelectorAll(q).forEach(el=>{const b=el.getBoundingClientRect();if(!b.width||!b.height)return;
+ r=r?{l:Math.min(r.l,b.left),t:Math.min(r.t,b.top),r:Math.max(r.r,b.right),b:Math.max(r.b,b.bottom)}:{l:b.left,t:b.top,r:b.right,b:b.bottom}}));return r}
+function tRad(sels,h){const el=document.querySelector(sels[0]),v=el?parseFloat(getComputedStyle(el).borderTopLeftRadius)||0:0;return v*2>=h-1?null:Math.max(8,Math.min(12,v+3))}
+function tDraw(m){const {ov,ring,veil,bub}=tEls,W=innerWidth,H=innerHeight,{x1,y1,x2,y2}=m,r=Math.min(m.r,(x2-x1)/2,(y2-y1)/2);
+ ov.style.clipPath=`path(evenodd,"M0 0H${W}V${H}H0Z M${x1+r} ${y1}H${x2-r}A${r} ${r} 0 0 1 ${x2} ${y1+r}V${y2-r}A${r} ${r} 0 0 1 ${x2-r} ${y2}H${x1+r}A${r} ${r} 0 0 1 ${x1} ${y2-r}V${y1+r}A${r} ${r} 0 0 1 ${x1+r} ${y1}Z")`;
+ const box={display:'block',left:x1+'px',top:y1+'px',width:x2-x1+'px',height:y2-y1+'px',borderRadius:r+'px'};Object.assign(ring.style,box);Object.assign(veil.style,box);bub.style.left=m.L+'px';bub.style.top=m.T+'px'}
+function tSet(h,L,T,side,tp){const {ov,ring,veil,bub}=tEls,tail=bub.querySelector('.tour-tail'),bw=bub.offsetWidth,bh=bub.offsetHeight;bub.dataset.tail=side;
+ if(side==='up'||side==='down')Object.assign(tail.style,{left:Math.max(40,Math.min(bw-24,tp-6))+'px',top:''});else Object.assign(tail.style,{top:Math.max(30,Math.min(bh-24,tp-6))+'px',left:''});
+ if(!h){ov.style.clipPath='none';ring.style.display=veil.style.display='none';bub.style.left=L+'px';bub.style.top=T+'px';return}tDraw({...h,L,T})}
+function tPlace(how){if(!tEls)return;const step=how==='step',s=TOUR[tI],bub=tEls.bub,W=innerWidth,H=innerHeight,P=7,G=18,bw=bub.offsetWidth,bh=bub.offsetHeight,
+ vh=Math.min(H,pnav.querySelector('.pnav-in').getBoundingClientRect().top-8),cl=(v,a,b)=>Math.max(a,Math.min(b,v)),go=y=>scrollBy({top:y,behavior:'instant'});let r=tRect(s.sel);
+ if(step&&r&&s.page!=null&&(r.t<G||r.b>vh-G)){const h=r.b-r.t;go(r.t-Math.max(G+24,(vh-(h+bh+G*2))/2));r=tRect(s.sel)}
+ if(!r){tSet(null,(W-bw)/2,(H-bh)/2,'none',0);return}
+ const x1=Math.max(4,r.l-P),y1=Math.max(4,r.t-P),x2=Math.min(W-4,r.r+P),y2=Math.min(H-4,r.b+P),rd=tRad(s.sel,r.b-r.t),hole={x1,y1,x2,y2,r:rd==null?(y2-y1)/2:rd},
+  cy=cl((y1+y2)/2-bh/2,32,H-bh-12),cx=cl((x1+x2)/2-bw/2,26,W-bw-12);let L,T,side;
+ if(W-x2>=bw+G*2){L=x2+G;T=cy;side='left'}else if(x1>=bw+G*2+26){L=x1-G-bw;T=cy;side='right'}
+ else if(Math.max(vh,H)-y2>=bh+G*2+14){L=cx;T=y2+G+14;side='up'}else if(y1>=bh+G*2+24){L=cx;T=y1-G-bh;side='down'}
+ else if(step&&s.page!=null){const h=r.b-r.t;go(h+bh+G*3+14<=vh?r.t-Math.max(G,(vh-(h+bh+G+14))/2):r.t-G);return tPlace('step2')}
+ else{L=cx;T=H-bh-12;side='none'}
+ tSet(hole,L,T,side,side==='up'||side==='down'?(x1+x2)/2-L:(y1+y2)/2-T)}
+const tOnScroll=()=>tPlace(),tOnResize=()=>tPlace(),tRM=()=>matchMedia('(prefers-reduced-motion: reduce)').matches,
+ tWait=ms=>new Promise(f=>setTimeout(f,ms)),tFrame=()=>new Promise(f=>requestAnimationFrame(()=>requestAnimationFrame(f)));
+function tFade(on,ms){const {veil,ring,bub}=tEls;for(const e of [veil,ring,bub])e.style.transition=ms?`opacity ${ms}ms ease`:'none';veil.style.opacity=on?0:1;ring.style.opacity=bub.style.opacity=on?1:0}
+async function tGo(i){if(!tEls||i<0||i>=TOUR.length)return;const seq=++tSeq,rm=tRM(),s=TOUR[i],pg=s.page==null?tStart:s.page,live=()=>seq===tSeq&&tEls;tI=i;
+ if(tOn){tFade(false,rm?0:100);if(!rm){await tWait(110);if(!live())return}}
+ if(cur()!==pg){show(pg,false);scrollTo({top:0,behavior:'instant'});await tFrame();if(!live())return}
+ const b=tEls.bub;b.querySelector('.tour-tx').textContent=s.t.replace('{side}',innerWidth>900?'왼쪽':'위쪽');
+ [...b.querySelectorAll('.tour-dots i')].forEach((d,k)=>d.className=k===i?'on':'');b.querySelector('.tour-dots').setAttribute('aria-label',`${TOUR.length}단계 중 ${i+1}단계`);
+ b.querySelector('.t-prev').disabled=i===0;b.querySelector('.t-next').textContent=i===TOUR.length-1?'시작하기':'다음';
+ tPlace('step');await tFrame();if(!live())return;
+ if(!tOn){tEls.ov.style.transition=rm?'none':'opacity 170ms ease';tEls.ov.style.opacity=1}tFade(true,rm?0:170);tOn=true;b.querySelector('.t-next').focus({preventScroll:true})}
+function startTour(){if(tEls)return;tStart=Math.max(0,cur());tY=scrollY;tOn=false;const mk=c=>{const d=document.createElement('div');d.className=c;return d};
+ tEls={ov:mk('tour-ov'),veil:mk('tour-veil'),ring:mk('tour-ring'),bub:mk('tour-bub')};tEls.ov.style.opacity=0;tFade(false,0);const b=tEls.bub;b.setAttribute('role','dialog');b.setAttribute('aria-modal','true');b.setAttribute('aria-label','보고서 사용 안내');
+ b.innerHTML='<span class="tour-tail" aria-hidden="true"></span><svg class="tour-av" viewBox="0 0 64 64" aria-hidden="true"><use href="#casty-b"/><g class="cs-h"><use href="#casty-h"/></g></svg><div class="tour-hd"><b>캐스티</b><small>1조 보고서 길잡이</small><span class="tour-dots" role="img">'+'<i></i>'.repeat(TOUR.length)+'</span></div><p class="tour-tx" aria-live="polite"></p><div class="tour-ft"><button type="button" class="t-skip">건너뛰기</button><button type="button" class="t-prev">이전</button><button type="button" class="t-next">다음</button></div>';
+ document.body.append(tEls.ov,tEls.veil,tEls.ring,tEls.bub);b.querySelector('.t-skip').onclick=endTour;b.querySelector('.t-prev').onclick=()=>tGo(tI-1);b.querySelector('.t-next').onclick=()=>tI>=TOUR.length-1?endTour():tGo(tI+1);
+ addEventListener('resize',tOnResize);addEventListener('scroll',tOnScroll,{passive:true});tGo(0)}
+function endTour(){if(!tEls)return;tSeq++;Object.values(tEls).forEach(e=>e.remove());tEls=null;tOn=false;removeEventListener('resize',tOnResize);removeEventListener('scroll',tOnScroll);
+ tQuietAuto=true;show(tStart,true);tQuietAuto=false;scrollTo({top:tY,behavior:'instant'});document.getElementById('guide').focus({preventScroll:true})}
+addEventListener('keydown',e=>{if(!tEls)return;const k=e.key;
+ if(k==='ArrowRight'||k==='ArrowLeft'||k==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(k==='Escape')endTour();else if(k==='ArrowLeft')tGo(tI-1);else tI>=TOUR.length-1?endTour():tGo(tI+1)}
+ else if(k==='Tab'){const bs=[...tEls.bub.querySelectorAll('button:not(:disabled)')],i=bs.indexOf(document.activeElement);e.preventDefault();bs[(i+(e.shiftKey?-1:1)+bs.length)%bs.length].focus()}},true);
+document.getElementById('guide').onclick=startTour;
+if(document.fonts)document.fonts.ready.then(()=>tPlace());
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>Promise.all([...document.querySelectorAll('.mdl-src img')].map(i=>{const m=new Image();m.src=i.getAttribute('src');return m.decode().catch(()=>{})}))).then(()=>setTimeout(bkMeta,0));
+// 확인하기 = 절마다 책 한 권. 원래 내용(.mdl-src)은 제자리(숨김)에 두고, 복제본을 실제 높이로 재서 쪽을 나눈다(창 안 스크롤 없음)
+const mdl=document.getElementById('mdl'),bkEl=document.getElementById('bk'),bkBook=document.getElementById('bkBook'),bkM=document.getElementById('bkM');
+let bk=null;const BKC='.prose,.row2,.inner,.calc,.ctbl,.card,.bchart,ul,ol',FNRE=/\(([^()]*(?:시드|절|그림 \d)[^()]*)\)/g;
+function bkUnits(node,chain,out){for(const c of node.children){if(c.matches('.mdl-t'))continue;if(c.matches(BKC))bkUnits(c,chain.concat(c),out);else out.push({el:c,chain})}return out}
+function bkSize(){const W=innerWidth,H=innerHeight,mob=W<=600,spread=!mob&&W>=1400&&H>=640;
+ return mob?{pw:W-28,ph:H-24,mob,spread}:spread?{pw:Math.min(700,Math.floor((W-236)/2)),ph:Math.min(H-64,960),mob,spread}:{pw:Math.min(820,W-236),ph:Math.min(H-64,880),mob,spread}}
+function bkFnMark(el){if(!el.matches('p,li,.sn,.hint,.foot')&&!el.querySelector('p,li'))return;const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),ts=[];while(tw.nextNode())ts.push(tw.currentNode);
+ for(const t of ts){if(t.parentElement.closest('table,code,sup'))continue;const parts=[];let last=0,m;FNRE.lastIndex=0;
+  while((m=FNRE.exec(t.data))){if(m[1].length<8)continue;parts.push(t.data.slice(last,m.index));const sp=document.createElement('sup');sp.className='bk-fr';sp.dataset.fn=m[1];parts.push(sp);last=m.index+m[0].length}
+  if(parts.length){parts.push(t.data.slice(last));t.replaceWith(...parts)}}}
+function bkClone(el,id){const c=el.cloneNode(true);c.removeAttribute('id');c.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));c.dataset.bku=id;bkFnMark(c);return c}
+function bkTable(wrap,id,no,cont,rows){const t=wrap.querySelector('table'),all=[...t.rows],h=[];for(const r of all){if([...r.cells].every(c=>c.tagName==='TH'))h.push(r);else break}
+ const w=document.createElement('div');w.className='bk-tb';w.dataset.bku=id;const cap=document.createElement('div');cap.className='bk-cap';cap.textContent='표 '+bk.n+'-'+no+(cont?' (계속)':'');
+ const tw=wrap.cloneNode(false);tw.removeAttribute('id');const tt=t.cloneNode(false);tt.removeAttribute('id');const th=document.createElement('thead'),tbd=document.createElement('tbody');
+ h.forEach(r=>{const c=r.cloneNode(true);if(cont)c.classList.add('bk-rep');th.appendChild(c)});(rows||all.slice(h.length)).forEach(r=>tbd.appendChild(r.cloneNode(true)));tt.append(th,tbd);tw.appendChild(tt);w.append(cap,tw);w.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));return w}
+function bkShell(){const p=document.createElement('section');p.className='bk-page r';p.innerHTML='<header class="bk-rh"><span class="rh-c"></span><span class="rh-s"></span></header><div class="bk-body"><div class="bk-main"></div><div class="bk-fns"></div></div><footer class="bk-ft"><span class="bk-no"></span></footer>';return p}
+function bkPaginate(host=bkEl,mm=bkM){const z=bkSize();bk.mob=z.mob;bk.spread=z.spread;host.classList.toggle('spread',z.spread);host.classList.toggle('mob',z.mob);host.style.setProperty('--pw',z.pw+'px');host.style.setProperty('--ph',z.ph+'px');
+ mm.innerHTML='';const pg=bkShell();mm.appendChild(pg);const body=pg.querySelector('.bk-body'),main=pg.querySelector('.bk-main'),fns=pg.querySelector('.bk-fns');host.style.setProperty('--imgmax',Math.max(140,body.clientHeight-130)+'px');
+ const pages=[{op:1,s:0}],where=new Map(),uids=new Map(),start=[];let stack=[],tno=0,uid=0,fnN=0,cs=0,top=0;bk.over=0;
+ const fits=()=>body.scrollHeight<=body.clientHeight+1,flush=()=>{pages.push({m:main.innerHTML,f:fns.innerHTML,s:top});main.innerHTML='';fns.innerHTML='';stack=[];top=cs},
+  empty=()=>!main.children.length||(main.children.length===1&&main.firstElementChild.classList.contains('bk-sec')),
+  fnIn=node=>{const ad=[];node.querySelectorAll('sup.bk-fr').forEach(sp=>{fnN++;sp.textContent=fnN;const p=document.createElement('p'),nn=document.createElement('span');nn.className='bk-fnn';nn.textContent=fnN;p.append(nn,' '+sp.dataset.fn);fns.appendChild(p);ad.push(p)});return ad},
+  put=(node,chain,force)=>{if(!main.children.length)top=cs;let k=0;while(k<stack.length&&k<chain.length&&stack[k].src===chain[k])k++;stack.length=k;let t0=null;
+   for(let j=k;j<chain.length;j++){const sh=chain[j].cloneNode(false);sh.removeAttribute('id');(stack.length?stack[stack.length-1].el:main).appendChild(sh);stack.push({src:chain[j],el:sh});if(!t0)t0=sh}
+   (stack.length?stack[stack.length-1].el:main).appendChild(node);const ad=fnIn(node);if(force||fits())return true;ad.forEach(p=>p.remove());fnN-=ad.length;node.remove();if(t0){t0.remove();stack.length=k}return false};
+ const placeUnit=(u,hd)=>{const id=uid++,tbl=u.el.matches('.table-wrap');if(tbl)tno++;uids.set(u.el,id);const mk=()=>tbl?bkTable(u.el,id,tno,false,null):bkClone(u.el,id);
+  if(put(mk(),u.chain)){where.set(u.el,pages.length);return}
+  if(hd&&main.firstElementChild!==hd){hd.remove();flush();put(hd,[],true);start[cs]=pages.length;stack=[];if(put(mk(),u.chain)){where.set(u.el,pages.length);return}}
+  else if(!hd&&!empty()){flush();if(put(mk(),u.chain)){where.set(u.el,pages.length);return}}
+  where.set(u.el,pages.length);const sns=u.el.querySelectorAll(':scope > .sn');
+  if(tbl){const rows=[...u.el.querySelector('table').rows].filter(r=>![...r.cells].every(c=>c.tagName==='TH'));let i=0,cont=false;   // 표가 한 쪽보다 길면 행 단위로(머리행 반복)
+   while(i<rows.length){const node=bkTable(u.el,id,tno,cont,[rows[i]]);put(node,u.chain,true);const tb=node.querySelector('tbody');let k=i+1;
+    while(k<rows.length){const rc=rows[k].cloneNode(true);tb.appendChild(rc);if(!fits()){rc.remove();break}k++}i=k;if(i<rows.length){flush();cont=true}}}
+  else if(sns.length>1){let i=0,cont=false;   // 문단·항목이 한 쪽보다 길면 문장 묶음(.sn) 경계에서만
+   while(i<sns.length){const sh=u.el.cloneNode(false);sh.removeAttribute('id');sh.dataset.bku=id;if(cont)sh.classList.add('bk-cont');put(sh,u.chain,true);let k=i;
+    while(k<sns.length){const c=sns[k].cloneNode(true);bkFnMark(c);sh.appendChild(c);const ad=fnIn(c);if(k>i&&!fits()){ad.forEach(p=>p.remove());fnN-=ad.length;c.remove();break}k++}i=k;if(i<sns.length){flush();cont=true}}}
+  else{put(mk(),u.chain,true);if(!fits())bk.over++}};
+ bk.srcs.forEach((src,k)=>{cs=k;stack=[];const hd=document.createElement('div');hd.className='bk-sec';hd.dataset.sec=k;hd.innerHTML='<span class="bk-secno"></span><h2 class="bk-sect"></h2>';
+  hd.firstChild.textContent=bk.n+'.'+(k+1);hd.lastChild.textContent=bk.titles[k];if(!put(hd,[])){flush();put(hd,[],true)}start[k]=pages.length;stack=[];
+  bkUnits(src,[],[]).forEach((u,j)=>placeUnit(u,j===0?hd:null))});
+ if(main.children.length)flush();Object.assign(bk,{pages,where,uids,start});mm.innerHTML=''}
+function bkPg(i,side){const p=document.createElement('section');p.className='bk-page '+side;const n=bk.pages.length;if(i<0||i>=n){p.classList.add('bk-blank');return p}
+ if(i===0){p.classList.add('bk-opener');p.innerHTML='<div class="bk-op"><div class="bk-opk">CHAPTER</div><div class="bk-opn"></div><div class="bk-oprule"></div><h2 class="bk-opt"></h2><div class="bk-tock">차례</div><ol class="bk-toc"></ol></div>';
+  p.querySelector('.bk-opn').textContent=String(bk.n).padStart(2,'0');p.querySelector('.bk-opt').textContent=bk.chap;const ol=p.querySelector('.bk-toc');
+  bk.titles.forEach((t,k)=>{const li=document.createElement('li');li.innerHTML='<button type="button"><span class="no"></span><span class="tt"></span><span class="pg"></span></button>';const bt=li.firstChild;bt.dataset.goto=bk.start[k];
+   bt.querySelector('.no').textContent=bk.n+'.'+(k+1);bt.querySelector('.tt').textContent=t;bt.querySelector('.pg').textContent=bk.start[k];ol.appendChild(li)});return p}
+ const d=bk.pages[i],q=bkShell();q.className='bk-page '+side;q.querySelector('.rh-c').textContent=String(bk.n).padStart(2,'0')+' '+bk.chap;q.querySelector('.rh-s').textContent=bk.n+'.'+(d.s+1)+' '+bk.titles[d.s];
+ q.querySelector('.bk-main').innerHTML=d.m;q.querySelector('.bk-fns').innerHTML=d.f;const no=q.querySelector('.bk-no');no.innerHTML='<b></b><small></small>';no.firstChild.textContent=i;no.lastChild.textContent=' / '+(n-1);
+ if(i===n-1)q.querySelector('.bk-ft').insertAdjacentHTML('beforeend','<button type="button" class="bk-close">닫기</button>');q.insertAdjacentHTML('beforeend','<i class="bk-peel" aria-hidden="true"></i>');return q}
+const bkEdges={};function bkEdge(E){if(!bkEdges[E]){const sh=[];for(let i=1;i<=E;i++){const y=Math.min(3,Math.ceil(i/4)),c='var('+(i%2?'--edge1':'--edge2')+')';sh.push(i+'px '+y+'px 0 0 '+c,'-'+i+'px '+y+'px 0 0 '+c)}bkEdges[E]=sh.join(',')}return bkEdges[E]}
+function bkDeco(){const n=bk.pages.length,st=bk.spread?2:1,sh=bkEdge(bk.mob?3:10);bkBook.style.boxShadow=sh;   // 옆면 두께는 고정(좌우 같게 10px, 휴대폰 3px) — 넘겨도 바뀌지 않는다
+ if(!bkBook.querySelector('.bk-rib')){const r=document.createElement('i');r.className='bk-rib';r.setAttribute('aria-hidden','true');bkBook.appendChild(r)}
+ bkBook.dataset.first=bk.at===0?1:0;bkBook.dataset.last=bk.at+st>=n?1:0}
+function bkRender(){const n=bk.pages.length,st=bk.spread?2:1;bk.at=Math.max(0,Math.min(bk.at-bk.at%st,n-1));bkBook.innerHTML='';
+ if(bk.spread)bkBook.append(bkPg(bk.at,'l'),bkPg(bk.at+1,'r'));else bkBook.append(bkPg(bk.at,'r'));bkDeco()}
+// 종이 넘김(페이지 컬): 모서리 P 를 움직이면 접힘선 = 모서리C→P 의 수직이등분선. 넘어가는 쪽은 접힘선 안쪽만 보이고(clip),
+// 뒷면(다음 펼침의 왼쪽 쪽)은 접힘선에 대한 반사 + 책등 반사 = 회전으로 그 바깥에 나타난다. 매 프레임 clip-path·transform 만 바꾼다(레이아웃 재계산 없음).
+const bkEase=(()=>{const x1=.45,y1=.05,x2=.25,y2=1,cx=3*x1,bx=3*(x2-x1)-cx,ax=1-cx-bx,cy=3*y1,by=3*(y2-y1)-cy,ay=1-cy-by,X=s=>((ax*s+bx)*s+cx)*s,Y=s=>((ay*s+by)*s+cy)*s,D=s=>(3*ax*s+2*bx)*s+cx;
+ return t=>{let s=t;for(let i=0;i<8;i++){const d=D(s);if(Math.abs(d)<1e-6)break;s-=(X(s)-t)/d}return Y(Math.min(1,Math.max(0,s)))}})();
+const BK_N=14;   // 넘어가는 종이 = 책등 쪽 판 1 + 바깥 띠 13. 띠마다 같은 쪽을 복제해 자기 띠만 보이게(clip, 고정) 하고, 경첩마다 누적 회전으로 곡면을 만든다
+function bkCurlSetup(a,b,top){const cs=getComputedStyle(bkEl),W=parseFloat(cs.getPropertyValue('--pw')),H=parseFloat(cs.getPropertyValue('--ph')),ox=bk.spread?W:0;bkBook.innerHTML='';let F,B;
+ if(bk.spread){bkBook.append(bkPg(a,'l'),bkPg(b+1,'r'));F=bkPg(a+1,'r');B=bkPg(b,'l')}else{bkBook.append(bkPg(b,'r'));F=bkPg(a,'r');B=document.createElement('section');B.className='bk-page l bk-blank'}
+ const tb=(top?-1:1)*Math.tan(12*Math.PI/180),xs=[0];for(let i=1;i<BK_N;i++)xs.push(W*(.26+.72*(i-1)/(BK_N-2)));   // 경첩선: 아래쪽이 책등 쪽으로 기운 사선 → 오른쪽 아래 모서리가 먼저 들린다
+ const hx=(i,y)=>i===0?0:xs[i]-(y-H/2)*tb,poly=(i,mir)=>{const L0=hx(i,0)-.6,L1=hx(i,H)-.6,R0=i+1<BK_N?hx(i+1,0)+.6:W+1,R1=i+1<BK_N?hx(i+1,H)+.6:W+1,m=x=>mir?W-x:x;
+  return 'polygon('+[[L0,0],[R0,0],[R1,H],[L1,H]].map(([x,y])=>m(x).toFixed(1)+'px '+y+'px').join(',')+')'};
+ const sheet=document.createElement('div');sheet.className='bk-sheet';sheet.style.left=ox+'px';let par=sheet;const st=[];
+ for(let i=0;i<BK_N;i++){const sd=document.createElement('div');sd.className='bk-st';sd.style.transformOrigin=xs[i]+'px '+(H/2)+'px';const face=(pg,back)=>{const f=document.createElement('div');f.className='bk-fa'+(back?' bk-fb':'');
+   f.style.clipPath=poly(i,back);f.appendChild(i?pg.cloneNode(true):pg);const lt=document.createElement('i');lt.className='bk-lt';const hl=document.createElement('i');hl.className='bk-hl';f.append(lt,hl);return [f,lt,hl]};
+  const [f,fl,fh]=face(F,false),[g,gl]=face(B,true);sd.append(f,g);par.appendChild(sd);par=sd;st.push({s:sd,fl,fh,gl,x:xs[i]})}
+ const cr=document.createElement('i');cr.className='bk-cast r';cr.style.left=ox+'px';const cl=document.createElement('i');cl.className='bk-cast l';cl.style.left=(ox-W)+'px';
+ bkBook.append(cr,cl,sheet);bkDeco();return {a,b,W,H,tb,st,sheet,cr,cl,p:0,pr:0,curv:0}}
+function bkCurlDraw(c,p,settle){p=Math.min(1,Math.max(0,p));c.p=c.pr=p;const E=t=>t<0?0:t>1?1:t*t*(3-2*t),phi=-180*E(p),bend=-84*Math.pow(Math.sin(Math.PI*p),.8),sb=-Math.sin(Math.atan(c.tb)),cb=Math.cos(Math.atan(c.tb));
+ let prev=0,mx=0;for(let i=0;i<BK_N;i++){const S=c.st[i],g=Math.pow(S.x/c.W,1.8);let a=phi+bend*g+(settle||0)*g;a=Math.max(-180,Math.min(0,a));const th=a-prev;prev=a;   // 곡률: 처음엔 완만 → 중간에 가장 휨 → 내려앉으며 펴짐
+  S.s.style.transform=i?'rotate3d('+sb.toFixed(4)+','+cb.toFixed(4)+',0,'+th.toFixed(2)+'deg)':'rotateY('+th.toFixed(2)+'deg)';if(i)mx=Math.max(mx,Math.abs(th));
+  const ca=Math.abs(Math.cos(a*Math.PI/180)),dk=.46*(1-ca),cv=Math.min(1,Math.abs(th)/10);S.fl.style.opacity=(dk*.9).toFixed(3);S.fh.style.opacity=(.07*cv*ca).toFixed(3);S.gl.style.opacity=(dk+.1).toFixed(3)}   // 빛: 볼록한 곳 살짝 밝게, 비스듬하면 어둡게, 뒷면은 더 어둡게
+ c.curv=mx;const lift=Math.sin(Math.PI*p),cp=Math.cos(phi*Math.PI/180);c.sheet.style.transform='translateZ('+(24*lift).toFixed(1)+'px)';   // 넘어가는 중 살짝 떠오른다
+ c.cr.style.opacity=(lift*(1-p)*.95).toFixed(3);c.cr.style.transform='scaleX('+Math.max(.03,.35+.65*Math.max(0,cp)).toFixed(3)+')';c.cl.style.opacity=(lift*p*.95).toFixed(3);c.cl.style.transform='scaleX('+Math.max(.03,.35+.65*Math.max(0,-cp)).toFixed(3)+')'}
+function bkCurlRun(c,from,to,dur,done){const t0=performance.now();c.ts=c.ts||[];const f=now=>{if(!bk||bk.curl!==c)return;c.ts.push(now);const k=Math.min(1,(now-t0)/dur);bkCurlDraw(c,from+(to-from)*bkEase(k));if(k<1)requestAnimationFrame(f);else bkSettle(c,to,done)};requestAnimationFrame(f)}
+function bkSettle(c,to,done){const t0=performance.now(),D=180,sg=to>=1?1:-1,f=now=>{if(!bk||bk.curl!==c)return;c.ts.push(now);const k=Math.min(1,(now-t0)/D);bkCurlDraw(c,to,sg*6*Math.sin(Math.PI*k)*(1-k));if(k<1)requestAnimationFrame(f);else done()};requestAnimationFrame(f)}   // 가볍게 내려앉기(아주 약한 탄성)
+function bkCurlEnd(c,at){if(!bk||bk.curl!==c)return;bk.lastTs=c.ts;bk.curl=null;bkBook.classList.remove('drag');bk.at=at;bkRender()}
+function bkFlipTo(nx){if(!bk||bk.curl||!bk.pages.length||bkPhase!=='open')return;const st=bk.spread?2:1,n=bk.pages.length;nx=Math.max(0,Math.min(nx,n-1));nx-=nx%st;if(nx===bk.at)return;
+ if(tRM()){bk.at=nx;bkRender();return}const fw=nx>bk.at,a=fw?bk.at:nx,b=fw?nx:bk.at,c=bkCurlSetup(a,b,false),du=bk.fast?480:860;bk.curl=c;
+ if(fw){bkCurlDraw(c,0);bkCurlRun(c,0,1,du,()=>bkCurlEnd(c,b))}else{bkCurlDraw(c,1);bkCurlRun(c,1,0,du,()=>bkCurlEnd(c,a))}}   // 이전 쪽은 같은 장면을 거꾸로
+function bkTurn(d){if(bk)bkFlipTo(bk.at+d*(bk.spread?2:1))}
+let bkPhase='closed';const bkDim=document.getElementById('bkDim'),bkHost=document.getElementById('bkHost'),bkM2=document.getElementById('bkM2'),bkE1='cubic-bezier(.2,.7,.3,1)',bkE2='cubic-bezier(.45,.05,.25,1)';
+function bkNew(n){const srcs=[...pages[n].querySelectorAll(':scope > .mdl-src')];return {n,srcs,titles:srcs.map(x=>x.querySelector('.mdl-t').textContent),chap:names[n],at:0,pages:[]}}
+function bkMeta(){if(bkPhase!=='closed'&&bkPhase!=='open')return;const save=bk;document.querySelectorAll('.bkbtn').forEach(b=>{const n=+b.dataset.book;bk=bkNew(n);
+ try{bkPaginate(bkHost,bkM2);const pc=bk.pages.length-1;b.dataset.meta=bk.srcs.length+'개 절 · '+pc+'쪽';b.setAttribute('aria-label','제'+n+'장 '+names[n]+' 자세히 보기, '+bk.srcs.length+'개 절, '+pc+'쪽')}catch(_){}});bk=save}
+function bkCover(back){const c=document.createElement('div');c.className='bk-cov';c.innerHTML='<div class="bk-cov-f"><div class="bk-cov-in"><div class="bk-opk">CHAPTER</div><div class="bk-opn"></div><div class="bk-oprule"></div><div class="bk-cov-t"></div><div class="bk-cov-by">1조 · 주조 불량 유형 예측</div></div><i class="bk-rib" aria-hidden="true"></i></div><div class="bk-cov-b"></div>';
+ c.querySelector('.bk-opn').textContent=String(bk.n).padStart(2,'0');c.querySelector('.bk-cov-t').textContent=bk.chap;if(back)c.querySelector('.bk-cov-b').appendChild(back);return c}
+function bkGeom(){const cs=getComputedStyle(bkEl),W=parseFloat(cs.getPropertyValue('--pw')),H=parseFloat(cs.getPropertyValue('--ph')),st=bk.spread,bb=bkBook.getBoundingClientRect(),r=(bk.btn&&bk.btn.isConnected?bk.btn:document.body).getBoundingClientRect();
+ const cx=bb.left+(st?W:0)+W/2,cy=bb.top+H/2,s0=Math.max(.06,Math.min(.5,(r.width||120)/W));bkBook.style.transformOrigin=((st?W:0)+W/2)+'px '+(H/2)+'px';
+ return {W,H,st,shift:st?-W/2:0,dx:r.left+r.width/2-cx,dy:r.top+r.height/2-cy,s0}}
+const bkDone=as=>Promise.all(as.map(a=>a.finished)).catch(()=>{});
+async function bkOpen(n,k,at,btn){if(bkPhase!=='closed'||tEls)return;const me=bkNew(n);me.btn=btn;bk=me;bkPhase='opening';mdl.setAttribute('aria-label','제'+n+'장 '+names[n]);
+ bkBook.innerHTML='';bkBook.style.boxShadow='';bkEl.classList.add('bk-intro');bkDim.style.opacity=0;mdl.appendChild(lb);mdl.showModal();
+ await Promise.all(me.srcs.flatMap(x=>[...x.querySelectorAll('img')]).map(i=>{const m=new Image();m.src=i.getAttribute('src');return m.decode().catch(()=>{})}));if(bk!==me)return;
+ bkPaginate();let p=0,fl=null;if(k!=null&&at!=null){const li=me.srcs[k].querySelectorAll('li')[+at];if(li&&me.where.has(li)){p=me.where.get(li);fl=me.uids.get(li)}}   // 쪽 나눔을 먼저 끝낸 뒤에 보여 준다
+ if(tRM()){bkDim.style.opacity=1;bkEl.classList.remove('bk-intro');me.at=p;bkRender();bkPhase='open';document.getElementById('mdlX').focus();return}
+ const g=bkGeom();bkBook.innerHTML='';bkBook.classList.add('bk-closed');
+ if(g.st){const L=bkPg(0,'l');L.style.visibility='hidden';bkBook.append(L,bkPg(1,'r'))}else bkBook.append(bkPg(0,'r'));
+ const cov=bkCover(g.st?bkPg(0,'l'):null);cov.style.left=(g.st?g.W:0)+'px';bkBook.appendChild(cov);
+ const d1=bkDim.animate([{opacity:0},{opacity:1}],{duration:250,fill:'forwards'}),a1=bkBook.animate([{transform:'translate('+g.dx+'px,'+g.dy+'px) scale('+g.s0+')',opacity:.35},{transform:'translate('+g.shift+'px,0) scale(1)',opacity:1}],{duration:400,easing:bkE1,fill:'forwards'});
+ await bkDone([a1]);if(bk!==me)return;   // 덮인 책이 버튼 자리에서 가운데로 떠오른다
+ const a2=cov.animate([{transform:'rotateY(0deg)'},{transform:'rotateY(-180deg)'}],{duration:660,easing:bkE2,fill:'forwards'}),a3=bkBook.animate([{transform:'translate('+g.shift+'px,0)'},{transform:'none'}],{duration:660,easing:bkE2,fill:'forwards'}),
+  a4=g.st?null:cov.animate([{opacity:1},{opacity:1,offset:.55},{opacity:0}],{duration:660,fill:'forwards'});
+ await bkDone([a2,a3].concat(a4?[a4]:[]));if(bk!==me)return;   // 표지가 책등을 축으로 왼쪽으로 열린다
+ bkDim.style.opacity=1;d1.cancel();bkBook.getAnimations().forEach(x=>x.cancel());bkBook.classList.remove('bk-closed');me.at=0;bkRender();bkEl.classList.remove('bk-intro');bkPhase='open';document.getElementById('mdlX').focus({preventScroll:true});
+ if(p===0){bkBook.classList.add('peek-r');setTimeout(()=>{if(bk===me&&!bkBook.matches(':hover'))bkBook.classList.remove('peek-r')},700)}
+ if(me.wantClose){bkClose();return}
+ if(p>0){me.fast=true;bkFlipTo(p);const w=()=>{if(bk!==me)return;if(me.curl)return requestAnimationFrame(w);me.fast=false;if(fl!=null){const el=bkBook.querySelector('[data-bku="'+fl+'"]');if(el){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}}};requestAnimationFrame(w)}}
+async function bkClose(){if(!bk){if(mdl.open)mdl.close();return}if(bkPhase==='opening'){bk.wantClose=true;return}if(bkPhase!=='open')return;
+ if(tRM()){mdl.close();return}const me=bk;bkPhase='closing';me.curl=null;bkDr=null;bkBook.classList.remove('drag');const g=bkGeom();bkEl.classList.add('bk-outro');bkBook.innerHTML='';bkBook.style.boxShadow='';bkBook.classList.add('bk-closed');
+ if(g.st){const L=document.createElement('section');L.className='bk-page l';L.style.visibility='hidden';bkBook.append(L,bkPg(me.at+1,'r'))}else bkBook.append(bkPg(me.at,'r'));
+ const cov=bkCover(g.st?bkPg(me.at,'l'):null);cov.style.left=(g.st?g.W:0)+'px';cov.style.transform='rotateY(-180deg)';bkBook.appendChild(cov);
+ const a1=cov.animate([{transform:'rotateY(-180deg)'},{transform:'rotateY(0deg)'}],{duration:500,easing:bkE2,fill:'forwards'}),a2=bkBook.animate([{transform:'none'},{transform:'translate('+g.shift+'px,0)'}],{duration:500,easing:bkE2,fill:'forwards'}),
+  a0=g.st?null:cov.animate([{opacity:0},{opacity:1,offset:.45},{opacity:1}],{duration:500,fill:'forwards'});
+ await bkDone([a1,a2].concat(a0?[a0]:[]));if(bk!==me)return;   // 표지가 닫힌다
+ const a3=bkBook.animate([{transform:'translate('+g.shift+'px,0) scale(1)',opacity:1},{transform:'translate('+g.dx+'px,'+g.dy+'px) scale('+g.s0+')',opacity:0}],{duration:380,easing:'cubic-bezier(.5,0,.75,.4)',fill:'forwards'}),
+  a4=bkDim.animate([{opacity:1},{opacity:0}],{duration:300,delay:120,fill:'forwards'});
+ await bkDone([a3,a4]);if(bk!==me)return;mdl.close()}   // 버튼 자리로 작아지며 돌아가고, 바탕이 밝아진다
+document.addEventListener('click',e=>{if(tEls)return;const bb=e.target.closest('.bkbtn');if(bb){bkOpen(+bb.dataset.book,null,null,bb);return}const b=e.target.closest('[data-mdl]');if(!b)return;const src=document.getElementById(b.dataset.mdl);if(!src)return;
+ const sec=src.closest('.page'),n=pages.indexOf(sec);bkOpen(n,[...sec.querySelectorAll(':scope > .mdl-src')].indexOf(src),b.dataset.at,b)});
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g&&!tEls)show(+g.dataset.go,true)});
+mdl.addEventListener('close',()=>{bk=null;bkPhase='closed';bkDr=null;bkBook.getAnimations().forEach(x=>x.cancel());bkDim.getAnimations().forEach(x=>x.cancel());bkDim.style.opacity=0;bkBook.innerHTML='';bkBook.style.boxShadow='';bkBook.className='bk-book';bkEl.classList.remove('bk-intro','bk-outro');lb.classList.remove('on');document.body.appendChild(lb)});
+mdl.addEventListener('cancel',e=>{e.preventDefault();bkClose()});bkDim.addEventListener('click',()=>bkClose());
+document.getElementById('mdlX').onclick=()=>bkClose();
+mdl.addEventListener('click',e=>{if(e.target===mdl)bkClose()});
+bkBook.addEventListener('click',e=>{if(e.target.closest('.bk-close')){bkClose();return}const g=e.target.closest('[data-goto]');if(g){bkFlipTo(+g.dataset.goto);return}const im=e.target.closest('figure img');if(im){lbi.src=im.src;lb.classList.add('on');return}
+ if(!bk||bkPhase!=='open'||bk.curl||performance.now()-bkDragAt<350||e.target.closest('a,button,sup,code,.bk-fns'))return;const pg=e.target.closest('.bk-page');if(!pg||pg.closest('.bk-sheet,.ob'))return;   // 오른쪽 쪽을 누르면 다음, 왼쪽 쪽을 누르면 이전
+ if(bk.spread)bkTurn(pg.classList.contains('l')?-1:1);else{const r=pg.getBoundingClientRect();bkTurn(e.clientX<r.left+r.width*.3?-1:1)}});
+bkBook.addEventListener('mousemove',e=>{if(!bk||bkPhase!=='open'||bk.curl||bkDr){bkBook.classList.remove('peek-r','peek-l');return}const r=bkBook.getBoundingClientRect(),nb=r.bottom-e.clientY<110;   // 모서리 근처에 오면 살짝 들려 보인다(힌트)
+ bkBook.classList.toggle('peek-r',nb&&r.right-e.clientX<110&&bkBook.dataset.last!=='1');bkBook.classList.toggle('peek-l',nb&&e.clientX-r.left<110&&bk.spread&&bkBook.dataset.first!=='1')});
+bkBook.addEventListener('mouseleave',()=>bkBook.classList.remove('peek-r','peek-l'));
+let bkDr=null;   // 손으로 넘기기: 마우스는 바깥 모서리 띠를 끌기(그냥 누르면 한 장), 터치는 좌우로 밀기. 절반을 넘기면 넘어가고 아니면 제자리
+bkBook.addEventListener('pointerdown',e=>{if(!bk||bk.curl||bkPhase!=='open'||tRM()||e.button>0||e.target.closest('button,a,img,[data-goto],sup'))return;const r=bkBook.getBoundingClientRect(),W=r.width/(bk.spread?2:1),ox=bk.spread?W:0,x=e.clientX-r.left-ox,y=e.clientY-r.top,touch=e.pointerType!=='mouse',
+ nR=x>W-72,nL=bk.spread?x<-W+72:x<72;if(!touch&&!nR&&!nL)return;bkDr={id:e.pointerId,x0:e.clientX,y0:e.clientY,touch,dir:touch?0:(nR?1:-1),top:!touch&&y<r.height/2,ox,r,W,c:null};if(!touch)e.preventDefault()});
+bkBook.addEventListener('pointermove',e=>{const d=bkDr;if(!d||e.pointerId!==d.id)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+ if(!d.c){if(Math.hypot(dx,dy)<8)return;if(d.touch&&Math.abs(dy)>Math.abs(dx)){bkDr=null;return}const dir=d.dir||(dx<0?1:-1),st=bk.spread?2:1,t=bk.at+dir*st;if(t<0||t>=bk.pages.length){bkDr=null;return}
+  d.fw=dir>0;d.a=d.fw?bk.at:t;d.b=d.fw?t:bk.at;d.c=bkCurlSetup(d.a,d.b,d.top);bk.curl=d.c;d.c.ts=[];bkBook.classList.add('drag');bkCurlDraw(d.c,d.fw?0:1);try{bkBook.setPointerCapture(d.id)}catch(_){}}
+ const c=d.c,p=d.touch?(d.fw?0:1)-dx*2.2/(2*c.W):(c.W-(e.clientX-d.r.left-d.ox))/(2*c.W);bkCurlDraw(c,p)});
+let bkDragAt=0;const bkUp=e=>{const d=bkDr;if(!d||e.pointerId!==d.id)return;bkDr=null;if(!d.c)return;bkDragAt=performance.now();
+ const c=d.c,p=c.p,past=p>.5,dur=Math.max(240,Math.round(620*(past?1-p:p)));past?bkCurlRun(c,p,1,dur,()=>bkCurlEnd(c,d.b)):bkCurlRun(c,p,0,dur,()=>bkCurlEnd(c,d.a))};
+bkBook.addEventListener('pointerup',bkUp);bkBook.addEventListener('pointercancel',bkUp);
+let bkMt=0;addEventListener('resize',()=>{clearTimeout(bkMt);bkMt=setTimeout(bkMeta,200)});
+addEventListener('resize',()=>{if(!mdl.open||!bk||!bk.pages.length||bkPhase!=='open')return;clearTimeout(bk.rt);bk.rt=setTimeout(()=>{if(!bk)return;const f=bk.at/bk.pages.length;bk.curl=null;bkPaginate();bk.at=Math.floor(f*bk.pages.length);bkRender()},150)});
+addEventListener('keydown',e=>{if(!mdl.open)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();e.stopImmediatePropagation();if(!lb.classList.contains('on'))bkTurn(e.key==='ArrowRight'?1:-1)}
+ if(e.key==='Escape'&&lb.classList.contains('on')){e.preventDefault();e.stopImmediatePropagation();lb.classList.remove('on')}
+ if(e.key==='Tab'){const f=[...mdl.querySelectorAll('button,a[href],[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&x.offsetParent!==null&&!x.closest('.bk-m,.bk-sheet,.ob'));if(f.length){const i=f.indexOf(document.activeElement);e.preventDefault();f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}}},true);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const c=pages.findIndex(p=>p.classList.contains('on'));if(e.key==='ArrowRight')show(c+1,true);if(e.key==='ArrowLeft')show(c-1,true)});
+const root=document.documentElement,tb=document.getElementById('theme');
+function setTheme(t){root.dataset.theme=t;const tl=t==='light'?'어두운 화면으로':'밝은 화면으로';tb.innerHTML=t==='light'?'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>':'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';tb.setAttribute('aria-label',tl);tb.dataset.tip=tl;try{localStorage.setItem('theme',t)}catch(e){}}
+let t0=null;try{t0=localStorage.getItem('theme')}catch(e){}
+setTheme(t0||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+tb.onclick=()=>setTheme(root.dataset.theme==='light'?'dark':'light');
+const bar=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;bar.style.width=(h.scrollTop/Math.max(1,h.scrollHeight-h.clientHeight)*100)+'%'});
+const lb=document.getElementById('lb'),lbi=lb.querySelector('img');
+document.querySelectorAll('figure img').forEach(i=>i.onclick=()=>{lbi.src=i.src;lb.classList.add('on')});
+lb.onclick=()=>lb.classList.remove('on');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});
+// 00 요약 절에 들어올 때마다 캐스티 안내를 시작한다(건너뛰어도 다음에 또). 절 전환이 끝난 뒤 600ms, 이미 진행 중이면 그대로, 책이 열려 있으면 닫힌 뒤.
+// 투어가 끝나거나 건너뛰어 요약으로 돌아올 때는 다시 시작하지 않는다(무한 반복 방지). window.__noAutoTour 는 자동 점검용 끄개.
+let tPrevPage=-1,tAutoT=0,tPend=false,tQuietAuto=false;
+function tAuto(){if(window.__noAutoTour||tEls||tQuietAuto)return;clearTimeout(tAutoT);if(mdl.open){tPend=true;return}tAutoT=setTimeout(()=>{Promise.race([document.fonts?document.fonts.ready:0,tWait(1500)]).then(()=>requestAnimationFrame(()=>{if(tEls||cur()!==0)return;if(mdl.open){tPend=true;return}startTour()}))},600)}
+mdl.addEventListener('close',()=>{if(tPend){tPend=false;if(cur()===0)tAuto()}});
+try{localStorage.removeItem(GKEY)}catch(e){}
+addEventListener('pageshow',e=>{if(e.persisted&&!tEls){tPrevPage=-1;show(0,true)}});
+show(0,true);   // 열 때는 항상 요약에서(주소에 남은 #sN 은 무시하고 #s0 으로 정리)
+</script></body></html>
