@@ -69,7 +69,24 @@ def scores(y_true, y_pred, weight=None):
     return {"macro_f1": float(f1), "탐지율": float(det), "정확도": float(acc)}
 
 
+def fit_predict_D(X_fit, y_fit, X_val):
+    """2안(D안, 현장성을 높인 또 다른 안): RF 잎1(가중치 강도 0.5) + RF 잎6(강도 0.75) 확률 평균, 기타불량 확률 x1.5"""
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.utils.class_weight import compute_class_weight
+    classes = np.unique(y_fit)
+    probs = []
+    for leaf, power in ((1, 0.5), (6, 0.75)):
+        cw = dict(zip(classes, compute_class_weight("balanced", classes=classes, y=np.asarray(y_fit)) ** power))
+        rf = RandomForestClassifier(200, min_samples_leaf=leaf, class_weight=cw, random_state=42, n_jobs=-1).fit(X_fit, y_fit)
+        probs.append(rf.predict_proba(X_val))
+    P = np.mean(probs, axis=0)
+    P[:, list(classes).index("기타불량")] *= 1.5
+    return classes[P.argmax(1)]
+
+
 def fit_predict(model_name, X_fit, y_fit, X_val):
+    if model_name == "D안":
+        return fit_predict_D(X_fit, y_fit, X_val)
     main.MODEL_NAME = model_name
     model = main.build_model(y_fit)
     model.fit(X_fit, y_fit)
@@ -223,15 +240,17 @@ def compute_volume(X65, y, g):
 # ------------------------------------------------------------
 # 계산 3: 분할 비교
 # ------------------------------------------------------------
-def compute_split(X25, X65, y, g):
+def compute_split(X25, X65, y, g, only=None):
     yv = np.asarray(y)
     n = len(yv)
     cut = int(n * 0.8)  # train은 shot_id 순서로 들어 있으므로 앞 80% = 이른 시기
-    specs = {"로지스틱": ("logistic", X25, False), "RF(E안)": ("rf", X25, False), "H안(최종)": ("rf_et_2stage", X65, True), "MLP": ("mlp", X25, False)}
-    res = {name: {} for name in specs}
+    specs = {"로지스틱": ("logistic", X25, False), "RF(E안)": ("rf", X25, False), "D안": ("D안", X25, False), "H안(최종)": ("rf_et_2stage", X65, True), "MLP": ("mlp", X25, False)}
+    res = {name: {} for name in specs if not only or name in only}
     info = {"시간순 검증 20% 불량률": float((yv[cut:] != NORMAL).mean()), "시간순 학습 80% 불량률": float((yv[:cut] != NORMAL).mean()),
             "전체 불량률": float((yv != NORMAL).mean())}
     for name, (model_name, X, nb) in specs.items():
+        if only and name not in only:
+            continue
         main.NEIGHBOR_FEATURES = nb
         rnd, grp = [], []
         for seed in (42, 0, 1, 2, 3):
@@ -308,7 +327,7 @@ def plot_volume(d):
 
 def plot_split(d):
     res = d["결과"]
-    models = list(res)
+    models = [m for m in ("H안(최종)", "D안") if m in res]  # 1안(H안)과 2안(D안)만 비교
     modes = ["무작위 80/20", "쌍둥이 묶음 80/20", "시간순 80/20"]
     colors = [GRAY, BLUE, RED]
     fig, ax = plt.subplots(figsize=(8, 4.4))
@@ -319,10 +338,11 @@ def plot_split(d):
         for b, v in zip(bars, vals):
             ax.text(b.get_x() + b.get_width() / 2, v + 0.01, f"{v:.2f}", ha="center", fontsize=9)
     ax.set_xticks(np.arange(len(models)))
-    ax.set_xticklabels(models)
+    names = {"D안": "2안 (현장성을 높인\n또 다른 안)", "H안(최종)": "1안 (최종 제출안)"}
+    ax.set_xticklabels([names.get(m, m) for m in models])
     ax.set_ylabel("macro F1")
     h = res["H안(최종)"]
-    ax.set_title(f"H안: 무작위 {h[modes[0]]['macro_f1'][0]:.2f} → 시간순 {h[modes[2]]['macro_f1'][0]:.2f}. 현장 배포 성능은 시간순 쪽에 가깝습니다", fontsize=11.5, loc="left")
+    ax.set_title(f"1안: 무작위 {h[modes[0]]['macro_f1'][0]:.2f} → 시간순 {h[modes[2]]['macro_f1'][0]:.2f}. 현장 배포 성능은 시간순 쪽에 가깝습니다", fontsize=11.5, loc="left")
     ax.legend(frameon=False, fontsize=9)
     ax.set_ylim(0, max(0.75, ax.get_ylim()[1]))
     style(ax)
@@ -341,7 +361,11 @@ def plot_all(R):
 
 def main_run():
     R = json.loads(JSON_PATH.read_text(encoding="utf-8")) if JSON_PATH.exists() else {}
-    if "--plot" not in sys.argv:
+    if "--add-D" in sys.argv:  # 이미 계산된 분할 비교 결과에 D안만 덧붙인다(약 몇 분)
+        X25, X65, y, g = load()
+        R["split"]["결과"]["D안"] = compute_split(X25, X65, y, g, only=["D안"])["결과"]["D안"]
+        JSON_PATH.write_text(json.dumps(R, ensure_ascii=False, indent=1), encoding="utf-8")
+    if "--plot" not in sys.argv and "--add-D" not in sys.argv:
         X25, X65, y, g = load()
         t0 = time.time()
         for key, fn in (("epoch", lambda: compute_epoch(X25, y, g)), ("volume", lambda: compute_volume(X65, y, g)), ("split", lambda: compute_split(X25, X65, y, g))):

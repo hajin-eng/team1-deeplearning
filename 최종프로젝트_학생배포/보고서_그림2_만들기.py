@@ -86,7 +86,7 @@ def plot_fig4(P, y):
         b.scatter([q * 100], [v], color=RED, zorder=3); b.annotate(f"{q:.0%} 검사 → 불량 {v:.0f}% 발견", (q * 100, v), textcoords="offset points", xytext=(14, -22), fontsize=9)
     b.set_xlabel("검사한 샷 비율 (%)"); b.set_ylabel("찾아낸 불량 비율 (%)"); b.legend(frameon=False, loc="lower right"); style(b)
     b.set_title("모델은 불량을 단정하지 못하지만\n위험 순위로는 무작위보다 2배 이상 잘 찾는다", fontsize=11, loc="left")
-    fig.text(0.01, 0.01, "학습 데이터 그룹 교차검증(같은 입력이 학습에 없는 샷), 최종 H안. 리더보드 점수는 사용하지 않음.", fontsize=8, color=GRAY)
+    fig.text(0.01, 0.01, "학습 데이터 그룹 교차검증(같은 입력이 학습에 없는 샷), 1안(최종 제출안). 리더보드 점수는 사용하지 않음.", fontsize=8, color=GRAY)
     fig.tight_layout(rect=(0, 0.03, 1, 1)); fig.savefig(OUT / "그림4_혼동행렬_위험순위.png", dpi=160); plt.close(fig)
 
 
