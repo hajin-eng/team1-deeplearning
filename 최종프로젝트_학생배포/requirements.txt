@@ -1,0 +1,9 @@
+# python main.py 에 필요한 라이브러리 (강사 허용 목록 안)
+# 개발·검증에 쓴 환경: Python 3.14, numpy 2.5.2, pandas 3.0.5, scikit-learn 1.9.0
+numpy
+pandas
+scikit-learn
+
+# 아래는 보고서 그림 스크립트·MLP 실험에만 필요하다 (main.py에는 필요 없음)
+# matplotlib
+# torch
