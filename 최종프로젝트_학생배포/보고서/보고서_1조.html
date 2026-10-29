@@ -1,19 +1,19 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>1조 주조 불량 예측 보고서</title>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>new1 주조 불량 예측 보고서</title>
 <style>
 @page{size:A4;margin:13mm 14mm 15mm;@bottom-right{content:counter(page);font:8pt "Noto Sans KR","Malgun Gothic",sans-serif;color:#7a8da0}}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
-body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:10pt;line-height:1.75;color:#1b2b3a;margin:0;word-break:keep-all}
-.hd{background:#0b3556;color:#fff;padding:24px 28px 20px;border-radius:12px;margin-bottom:12px;border-bottom:7px solid #8fd0f0}
+body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:10pt;line-height:1.68;color:#1b2b3a;margin:0;word-break:keep-all}
+.hd{background:#0b3556;color:#fff;padding:20px 26px 16px;border-radius:12px;margin-bottom:12px;border-bottom:7px solid #8fd0f0}
 .hd h1{font-size:21pt;margin:0 0 8px;letter-spacing:-.5px;color:#fff;line-height:1.3}
 .hd .sub{color:#cfe6f6;font-size:9.2pt;margin:0;line-height:1.7}
 h2{font-size:14pt;margin:26px 0 12px;padding:9px 18px;background:#0b5a8c;color:#fff;border-radius:9px;border-bottom:5px solid #8fd0f0;break-after:avoid;letter-spacing:-.3px}
 h2.pb{break-before:page;margin-top:0}
-p{margin:0 0 9px}.sn{display:block;margin-bottom:5px}
+p{margin:0 0 8px}.sn{display:block;margin-bottom:4px}
 ul{margin:4px 0 8px;padding:0;list-style:none}
 li{margin:0 0 6px;padding-left:16px;position:relative}
 li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:#1a7fc0}
-ul.summary li{background:#eaf4fb;border:1px solid #cfe3f0;border-radius:9px;padding:9px 14px 9px 28px;margin:0 0 8px;break-inside:avoid}
-ul.summary li::before{left:13px;top:1.05em}
+ul.summary li{background:#eaf4fb;border:1px solid #cfe3f0;border-radius:9px;padding:7px 14px 7px 28px;margin:0 0 6px;break-inside:avoid;line-height:1.55;font-size:9.5pt}
+ul.summary li::before{left:13px;top:.95em}
 b{color:#0a3c63}code{background:#e6eef6;padding:0 4px;border-radius:3px;font-size:8.8pt;color:#0b5a8c}
 u{text-decoration-color:#e0a030;text-underline-offset:2px}
 table{border-collapse:separate;border-spacing:0;width:100%;margin:8px 0 14px;font-size:9pt;line-height:1.55;break-inside:avoid;border:1px solid #c9dcec;border-radius:9px;overflow:hidden}
@@ -24,6 +24,7 @@ tr:nth-child(even) td{background:#f3f8fc}
 tr.hl td{background:#d6e9f7!important;color:#0a3c63;font-weight:700}
 tr:last-child td{border-bottom:0}
 img{width:100%;display:block;margin:10px 0 3px;border:1px solid #cfe0ee;border-radius:10px;background:#fff;padding:5px;break-inside:avoid}
+img[src*="그림1_"]{width:82%;margin-left:auto;margin-right:auto}
 .cap{font-size:8.6pt;color:#5a6b7c;margin:0 0 12px;padding-left:3px;line-height:1.6;break-before:avoid}
 .warn{background:#fdeee4;border:1px solid #f3c5a8;border-left:5px solid #e0480f;border-radius:9px;padding:10px 14px;margin:10px 0;break-inside:avoid}
 .warn ul{margin-bottom:0}.warn li::before{background:#e0480f}
@@ -56,7 +57,7 @@ img{width:100%;display:block;margin:10px 0 3px;border:1px solid #cfe0ee;border-r
 .chartbox svg{display:block;width:100%;height:auto}
 .chartbox text{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;fill:#5a6b7c;font-size:11px}.chartbox .val{fill:#0a3c63;font-weight:700}
 </style></head><body>
-<div class="hd"><h1>주조 불량 유형 예측 — 1조 최종 보고서</h1>
+<div class="hd"><h1>주조 불량 유형 예측 — new1 최종 보고서</h1>
 <div class="sub">포스코 K-뉴딜아카데미 딥러닝 최종 프로젝트 · 7,535샷(학습 5,274 · 시험 2,261) · 지표 macro F1 · 검증 수치는 학습 데이터로 계산했고, 최종 제출 모델은 중간 리더보드(public) 점수를 기준으로 1안으로 정했다</div></div>
 
 <h2>0. 요약</h2>
@@ -116,7 +117,7 @@ img{width:100%;display:block;margin:10px 0 3px;border:1px solid #cfe0ee;border-r
 <table><tr><th>모델</th><th>무작위 80/20</th><th>쌍둥이 묶음 80/20</th><th>시간순 80/20</th></tr>
 <tr><td><b>1안(최종 제출안)</b></td><td><b>0.560</b></td><td>0.256</td><td><b>0.125</b> (탐지 0%)</td></tr>
 <tr><td>2안 (현장성을 높인 또 다른 안)</td><td>0.504</td><td><b>0.338</b></td><td>0.111 (탐지 31%, 정확도 50%)</td></tr></table>
-<p>외우는 1안은 무작위에서 부풀고 시간순에서는 "전부 정상"(0.125)에 가깝다. 2안은 시간순에서도 불량의 31%를 부르지만 헛경보가 많아 정확도 50%, F1 0.111로 1안과 같은 수준이다. <b>현장 배포 성능에 가까운 쪽은 시간순</b>이다. 리더보드는 시험 샷이 생산 순서에 섞여 있어 무작위 쪽에 가깝다. 시간순 구간(shot 6009~7535)은 전부 제품 유형 2인데 학습에 이 제품이 1,269행뿐이라 "새 시기의 같은 제품"을 거의 못 본 시험이다. 그러므로 최종 점수(private 1,131행, SD 약 0.03)를 현장 성능으로 읽으면 안 된다. 연속 100샷 구간을 통째로 떼는 "새 생산 구간" 검증(4절 표)도 같은 결과다: 1안 F1 0.136·탐지율 1.2%, 2안 0.235(탐지 31%).</p>
+<p>외우는 1안은 무작위에서 부풀고 시간순에서는 "전부 정상"(0.125)에 가깝다. 2안은 시간순에서도 불량의 31%를 부르지만 헛경보가 많아 정확도 50%, F1 0.111로 1안과 같은 수준이다. <b>현장 배포 성능에 가까운 쪽은 시간순</b>이다. 리더보드는 시험 샷이 생산 순서에 섞여 있어 무작위 쪽에 가깝다. 시간순 구간(shot 6009~7535)은 전부 제품 유형 2인데 학습에 이 제품이 1,269행뿐이라 "새 시기의 같은 제품"을 거의 못 본 시험이다. 그러므로 최종 점수(private 1,131행, SD 약 0.037)를 현장 성능으로 읽으면 안 된다. 연속 100샷 구간을 통째로 떼는 "새 생산 구간" 검증(4절 표)도 같은 결과다: 1안 F1 0.136·탐지율 1.2%, 2안 0.235(탐지 31%).</p>
 <p><b>분할에 따라 모델 순위가 바뀐다</b>: 무작위 분할과 실제 리더보드(public 1안 0.5987, 2안 0.5710)에서는 1안이 높고, 쌍둥이 묶음(새 입력)에서는 2안(0.34)이 1안(0.26)보다 높다. 시험 샷의 58%가 학습에 같은 입력이 있는 구조(private 58.4%, 입력으로 센 값)라 최종 채점도 이 구조에 가깝다고 보고, public 점수가 높은 1안을 택했다. 대신 새 입력 약점을 한계로 밝히고 운영안은 경보 기준으로 보완했다. private은 1,131샷이라 표본 흔들림이 SD 약 0.037이므로 점수 예측은 하지 않는다.</p>
 
 <img src="../보고서_그림/그림6_2x2.png"><div class="cap">그림 4. 새 입력(쌍둥이를 같은 쪽에 둔 5분할) 기준 정상/불량 2×2 표, 건수는 시드 7·123·2026 평균이며 경보 기준 ×1.0. 1안은 불량 1,182건 중 122건(10%)을 잡고 정상 4,092건 중 73건에 헛경보를 낸다. 2안은 불량을 48% 잡는 대신 헛경보가 18%다. 7절 비용표는 시드 4개 평균이라 이 그림과 몇 건 다르다.</div>

@@ -23,18 +23,18 @@ NAVY, BLUE, ORANGE, GRAY, GREEN, RED = "#0b5a8c", "#1a7fc0", "#e8a33a", "#9aa8b6
 CSS = """
 @page{size:A4;margin:13mm 14mm 15mm;@bottom-right{content:counter(page);font:8pt "Noto Sans KR","Malgun Gothic",sans-serif;color:#7a8da0}}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
-body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:10pt;line-height:1.75;color:#1b2b3a;margin:0;word-break:keep-all}
-.hd{background:#0b3556;color:#fff;padding:24px 28px 20px;border-radius:12px;margin-bottom:12px;border-bottom:7px solid #8fd0f0}
+body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:10pt;line-height:1.68;color:#1b2b3a;margin:0;word-break:keep-all}
+.hd{background:#0b3556;color:#fff;padding:20px 26px 16px;border-radius:12px;margin-bottom:12px;border-bottom:7px solid #8fd0f0}
 .hd h1{font-size:21pt;margin:0 0 8px;letter-spacing:-.5px;color:#fff;line-height:1.3}
 .hd .sub{color:#cfe6f6;font-size:9.2pt;margin:0;line-height:1.7}
 h2{font-size:14pt;margin:26px 0 12px;padding:9px 18px;background:#0b5a8c;color:#fff;border-radius:9px;border-bottom:5px solid #8fd0f0;break-after:avoid;letter-spacing:-.3px}
 h2.pb{break-before:page;margin-top:0}
-p{margin:0 0 9px}.sn{display:block;margin-bottom:5px}
+p{margin:0 0 8px}.sn{display:block;margin-bottom:4px}
 ul{margin:4px 0 8px;padding:0;list-style:none}
 li{margin:0 0 6px;padding-left:16px;position:relative}
 li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:#1a7fc0}
-ul.summary li{background:#eaf4fb;border:1px solid #cfe3f0;border-radius:9px;padding:9px 14px 9px 28px;margin:0 0 8px;break-inside:avoid}
-ul.summary li::before{left:13px;top:1.05em}
+ul.summary li{background:#eaf4fb;border:1px solid #cfe3f0;border-radius:9px;padding:7px 14px 7px 28px;margin:0 0 6px;break-inside:avoid;line-height:1.55;font-size:9.5pt}
+ul.summary li::before{left:13px;top:.95em}
 b{color:#0a3c63}code{background:#e6eef6;padding:0 4px;border-radius:3px;font-size:8.8pt;color:#0b5a8c}
 u{text-decoration-color:#e0a030;text-underline-offset:2px}
 table{border-collapse:separate;border-spacing:0;width:100%;margin:8px 0 14px;font-size:9pt;line-height:1.55;break-inside:avoid;border:1px solid #c9dcec;border-radius:9px;overflow:hidden}
@@ -45,6 +45,7 @@ tr:nth-child(even) td{background:#f3f8fc}
 tr.hl td{background:#d6e9f7!important;color:#0a3c63;font-weight:700}
 tr:last-child td{border-bottom:0}
 img{width:100%;display:block;margin:10px 0 3px;border:1px solid #cfe0ee;border-radius:10px;background:#fff;padding:5px;break-inside:avoid}
+img[src*="그림1_"]{width:82%;margin-left:auto;margin-right:auto}
 .cap{font-size:8.6pt;color:#5a6b7c;margin:0 0 12px;padding-left:3px;line-height:1.6;break-before:avoid}
 .warn{background:#fdeee4;border:1px solid #f3c5a8;border-left:5px solid #e0480f;border-radius:9px;padding:10px 14px;margin:10px 0;break-inside:avoid}
 .warn ul{margin-bottom:0}.warn li::before{background:#e0480f}
@@ -196,7 +197,7 @@ VIS_AFTER_FIG = {  # 해당 절의 그림 뒤에 넣을 요소
              ("Exfoliation", "유형 1 · Spray_Time &gt; 8.1 (1.2~2.7 / 8.5~11.2)", [1.8, 9.8]),
              ("Short_Shot", "유형 1 · Melting_Furnace_Temp &gt; 711 (1.7~4.0 / 5.5~7.5)", [2.6, 6.4])], 25, pct),
 }
-PAGE_BREAK = set()
+PAGE_BREAK = {6, 8}  # 그림·표가 쪽 사이에서 끊기지 않게 새 쪽에서 시작하는 절
 
 SENT_END = re.compile(r"(?<=[다요음임함됨])\.(</[biu]>)?(\s+)(?=[<\"“(가-힣A-Z0-9①②③\[])")
 
