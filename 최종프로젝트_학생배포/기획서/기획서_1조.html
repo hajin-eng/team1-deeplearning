@@ -1,21 +1,21 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>기획서 — 다이캐스팅 불량 유형 예측</title>
 <style>
-@page{size:A4;margin:13mm 14mm 14mm;@bottom-right{content:counter(page);font:7.5pt "Noto Sans KR","Malgun Gothic",sans-serif;color:#7a8da0}}
+@page{size:A4;margin:11mm 13mm 12mm;@bottom-right{content:counter(page);font:7.5pt "Noto Sans KR","Malgun Gothic",sans-serif;color:#7a8da0}}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
-body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:9.2pt;line-height:1.62;color:#1b2b3a;margin:0;word-break:keep-all}
-.hd{background:#0b3556;color:#fff;padding:18px 24px 15px;border-radius:10px;margin-bottom:6px;border-bottom:5px solid #8fd0f0}
-.hd h1{font-size:17pt;margin:0 0 3px;line-height:1.3;color:#fff}
-.hd .sub{color:#cfe6f6;font-size:8.8pt;margin:0;line-height:1.55}
-h2{font-size:11.5pt;margin:18px 0 9px;padding:6px 14px;background:#0b5a8c;color:#fff;border-radius:7px;border-bottom:3px solid #8fd0f0;break-after:avoid}
-p{margin:0 0 7px}
+body{font-family:"Noto Sans KR","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;font-size:8.9pt;line-height:1.55;color:#1b2b3a;margin:0;word-break:keep-all}
+.hd{background:#0b3556;color:#fff;padding:14px 22px 12px;border-radius:10px;margin-bottom:6px;border-bottom:5px solid #8fd0f0}
+.hd h1{font-size:16pt;margin:0 0 3px;line-height:1.3;color:#fff}
+.hd .sub{color:#cfe6f6;font-size:8.3pt;margin:0;line-height:1.55}
+h2{font-size:10.5pt;margin:9px 0 4px;padding:4px 12px;background:#0b5a8c;color:#fff;border-radius:7px;border-bottom:3px solid #8fd0f0;break-after:avoid}
+p{margin:0 0 4px}
 ul{margin:2px 0 4px;padding:0;list-style:none}
-li{margin:0 0 5px;padding-left:13px;position:relative}
+li{margin:0 0 3px;padding-left:13px;position:relative}
 li::before{content:"";position:absolute;left:1px;top:.62em;width:5px;height:5px;border-radius:50%;background:#1a7fc0}
 b{color:#0a3c63}code{background:#e6eef6;padding:0 3px;border-radius:3px;font-size:8pt;color:#0b5a8c}
-table{border-collapse:separate;border-spacing:0;width:100%;margin:6px 0 12px;font-size:8.6pt;line-height:1.5;border:1px solid #c9dcec;border-radius:7px;overflow:hidden}
+table{border-collapse:separate;border-spacing:0;width:100%;margin:3px 0 6px;font-size:8.3pt;line-height:1.42;border:1px solid #c9dcec;border-radius:7px;overflow:hidden}
 tr{break-inside:avoid}
-th,td{padding:5px 9px;text-align:left;vertical-align:top;border-bottom:1px solid #dbe8f2}
+th,td{padding:3.5px 8px;text-align:left;vertical-align:top;border-bottom:1px solid #dbe8f2}
 th{background:#0b5a8c;color:#fff;font-weight:700}
 td:first-child{font-weight:600;color:#0a3c63}
 tr:nth-child(even) td{background:#f3f8fc}
@@ -25,87 +25,75 @@ tr:last-child td{border-bottom:0}
 </style></head><body>
 
 <div class="hd"><h1>기획서 — 다이캐스팅 불량, 금형을 열기 전에 잡아낸다</h1>
-<p class="sub">딥러닝 1기 최종 프로젝트 · 팀 new1 · 최초 작성 2026-10-15(목) · 최종 발표 2026-10-29(목)<br>
+<p class="sub">딥러닝 1기 최종 프로젝트 · 팀 new1 · 최초 작성 2026-10-15(목) · 최종 수정 2026-10-28(수)<br>
 10/15에 세운 계획을 최종 결정과 제출 결과에 맞춰 고쳤다. 점수는 macro F1이고, 검증 수치는 학습 데이터(5,274샷) 안에서 계산했다.</p></div>
 
 <h2>1. 팀 · 역할</h2>
 <p><b>팀명:</b> new1 · <b>팀장:</b> 오정수</p>
 <table>
-<tr><th style="width:15%">팀원</th><th style="width:40%">주 담당</th><th>산출물</th></tr>
-<tr><td>강문주</td><td>1안 전처리, 1안 모델링, 시각화(html) 제작, 기획서 제작</td><td>1안 모델(최종 제출), 웹 시각화 페이지, 기획서</td></tr>
-<tr><td>오정수 (팀장)</td><td>2안 모델링, 발표</td><td>2안 모델, 발표와 구술 질의응답</td></tr>
+<tr><th style="width:15%">팀원</th><th style="width:42%">주 담당</th><th>산출물</th></tr>
+<tr><td>강문주</td><td>1안 전처리, 1안 모델링, 시각화(html) 제작, 기획서 제작</td><td>1안 모델(최종 제출), 웹 시각화, 기획서</td></tr>
+<tr><td>오정수 (팀장)</td><td>2안 모델링, 발표</td><td>2안 모델, 발표·구술 질의응답</td></tr>
 <tr><td>김지수</td><td>보고서, ppt·발표 자료 제작</td><td>보고서 PDF, 발표 자료</td></tr>
 <tr><td>김다한</td><td>2안 전처리, 보고서 작성</td><td>2안 입력 처리, 보고서 본문</td></tr>
-<tr><td>김하진</td><td>데이터 메모</td><td>데이터 메모(구조·결측·중복·라벨 확인)</td></tr>
+<tr><td>김하진</td><td>데이터 메모</td><td>데이터 메모(구조·결측·중복·라벨)</td></tr>
 <tr><td>전원</td><td>재현 코드(<code>main.py</code>) 검수</td><td>제출 CSV, 재현 확인</td></tr>
 </table>
-<p>팀장이 팀의 모든 결정·숫자·코드를 설명할 수 있어야 하므로, 서로의 코드와 숫자를 설명하는 시간을 두고 구술 질의응답은 팀장이 답한다.</p>
 
 <h2>2. 문제 정의</h2>
 <ul>
 <li><b>누가 곤란한가:</b> 품질 담당자는 금형을 열어 검사한 뒤에야 불량을 안다. 그때는 재료·시간·설비 가동이 이미 들어간 뒤다.</li>
-<li><b>무엇을 바꾸나:</b> 샷마다 남는 공정·센서 기록(7,535샷 × 32열)만으로 불량 유형을 미리 예측한다. <b>선별</b>은 불량 가능성이 높은 샷을 먼저 걸러 검사 부담을 줄이는 것, <b>예방</b>은 불량을 늘리는 공정 조건을 찾아 미리 조정하는 것이다.</li>
-<li><b>맞힐 라벨 7종:</b> 정상 / Short_Shot(미충전) / Blow_Hole(기공) / Exfoliation(박리) / Stain(얼룩) / Deformation(변형) / 기타불량. 정상이 77.6%라 정확도는 의미가 없고 지표는 macro F1이다.</li>
-<li><b>두 가지 안:</b> <b>1안(최종 제출안)</b>은 리더보드 점수를 높이는 모델이고, <b>2안(현장성을 높인 또 다른 안)</b>은 입력 25개만 써서 실시간 판정이 되는 현장 후보 모델이다.</li>
+<li><b>무엇을 바꾸나:</b> 샷마다 남는 공정·센서 기록(7,535샷 × 32열)만으로 불량 유형 7종(정상 + 불량 6종)을 미리 예측한다. <b>선별</b>은 불량 가능성이 높은 샷을 먼저 걸러 검사 부담을 줄이는 것, <b>예방</b>은 불량을 늘리는 공정 조건을 찾아 미리 조정하는 것이다. 정상이 77.6%라 정확도는 의미가 없고 지표는 macro F1이다.</li>
+<li><b>두 가지 안:</b> <b>1안(최종 제출안)</b>은 리더보드 점수를 높이는 모델, <b>2안(현장성을 높인 또 다른 안)</b>은 입력 25개만 써서 실시간 판정이 되는 현장 후보 모델이다.</li>
 </ul>
 
-<h2 class="pb">3. 목표 (숫자 기준과 결과)</h2>
+<h2>3. 목표 (숫자 기준과 결과)</h2>
 <table>
-<tr><th style="width:12%">질문</th><th style="width:34%">성공 기준 (10/15 설정)</th><th style="width:42%">최종 결과</th><th>판정</th></tr>
-<tr><td>Q1 모델</td><td>무작위 검증 macro F1 최소 0.50, 목표 0.55, 도전 0.58 (공개 기준선 0.2517의 2배가 0.50)</td><td>무작위 80/20에서 1안 0.560, 2안 0.504. 실제 리더보드 1안 0.5987, 2안 0.5710</td><td><span class="ok">최소·목표 달성</span></td></tr>
-<tr><td>Q1 시간순</td><td>시간순(앞 80%→뒤 20%) macro F1 0.25 이상, 무작위와의 차이 원인 설명</td><td>1안 0.125, 2안 0.111. 뒤 20%는 전부 제품 유형 2이고 학습에 이 제품이 1,269행뿐이라 새 시기의 같은 제품을 거의 못 본 시험</td><td><span class="no">수치 미달</span>, 원인 설명</td></tr>
-<tr><td>Q1 클래스별</td><td>불량 5종 각 F1 0.30 이상, 기타불량 0.10 이상</td><td>같은 입력이 없는 새 샷에서 종류까지 맞힌 건수: Stain 29/100, Deformation 21/106, Blow_Hole 18/233, Exfoliation 12/198, Short_Shot 12/469, 기타불량 0/76</td><td><span class="no">미달</span>, 한계로 보고</td></tr>
-<tr><td>Q2 운영</td><td>하루 생산량을 가정하고 헛경보 10% 이하에서 불량 60% 이상 탐지. 임계값 3단계 이상, 비용비 3가지 이상에서 운영안 1개</td><td>하루 3,800샷(사이클 중앙값 22.6초 × 24시간)으로 수정. 경보 기준 8단계 × 비용비 5·10·20:1 표 작성. 운영안은 정상 ×0.1(하루 놓침 759→87, 헛경보 61→1,810). 새 입력 탐지율은 1안 10%·2안 48%라 탐지 기준은 미달</td><td><span class="ok">비용표·운영안 달성</span>, 탐지율 미달</td></tr>
-<tr><td>Q3 원인</td><td>불량 2종 이상에서 관리 구간과 나머지 구간의 불량률 차이 2배 이상, 구간당 300샷 이상</td><td>불량 3종·조건 5개. 유형 2의 High_Velocity 2.537 초과에서 Short_Shot 15.8%→5.3%, Blow_Hole 12.3%→0.7%. 유형 1의 Spray_Time 8.1 초과에서 Exfoliation 9.8%→1.8%</td><td><span class="ok">달성</span> (관리 후보, 인과 아님)</td></tr>
-<tr><td>공통</td><td><code>python main.py</code> 한 줄, 제출 CSV 2,261행, 10분 이내, CPU, 시드 고정</td><td>한 줄로 <code>제출_1조.csv</code> 생성, CPU 약 80초, 시드 42, 같은 CSV 재현 확인</td><td><span class="ok">달성</span></td></tr>
+<tr><th style="width:12%">질문</th><th style="width:32%">성공 기준 (10/15 설정)</th><th style="width:43%">최종 결과</th><th>판정</th></tr>
+<tr><td>Q1 모델</td><td>무작위 검증 macro F1 최소 0.50, 목표 0.55, 도전 0.58</td><td>무작위 80/20: 1안 0.560, 2안 0.504. 실제 리더보드: 1안 0.5987, 2안 0.5710 (공개 기준선 0.2517)</td><td><span class="ok">최소·목표 달성</span></td></tr>
+<tr><td>Q1 시간순·클래스별</td><td>시간순(앞 80%→뒤 20%) 0.25 이상, 불량 5종 F1 각 0.30 이상, 기타불량 0.10 이상</td><td>시간순 1안 0.125, 2안 0.111(뒤 20%가 전부 제품 유형 2). 새 입력에서 종류까지 맞힌 건수 Stain 29/100, Deformation 21/106, Blow_Hole 18/233, Exfoliation 12/198, Short_Shot 12/469, 기타불량 0/76</td><td><span class="no">미달</span>, 원인 설명·한계로 보고</td></tr>
+<tr><td>Q2 운영</td><td>하루 생산량 가정, 헛경보 10% 이하에서 불량 60% 이상 탐지. 임계값 3단계 이상 × 비용비 3가지 이상에서 운영안 1개</td><td>하루 3,800샷(사이클 중앙값 22.6초 × 24시간). 경보 기준 8단계 × 비용비 5·10·20:1 표, 운영안 정상 ×0.1(놓침 759→87, 헛경보 61→1,810). 새 입력 탐지율 1안 10%·2안 48%</td><td><span class="ok">비용표·운영안 달성</span>, 탐지율 미달</td></tr>
+<tr><td>Q3 원인</td><td>불량 2종 이상에서 구간 안팎 불량률 2배 이상, 구간당 300샷 이상</td><td>불량 3종·조건 5개. 유형 2의 High_Velocity 2.537 초과에서 Short_Shot 15.8%→5.3%, Blow_Hole 12.3%→0.7%. 유형 1의 Spray_Time 8.1 초과에서 Exfoliation 9.8%→1.8%</td><td><span class="ok">달성</span> (관리 후보)</td></tr>
+<tr><td>공통</td><td><code>python main.py</code> 한 줄, 10분 이내, CPU, 시드 고정</td><td><code>제출_new1.csv</code>(2,261행) 생성, 약 80초, 시드 42, 새 폴더에서도 같은 CSV 재현</td><td><span class="ok">달성</span></td></tr>
 </table>
 
-<h2 class="pb">4. 데이터 확인 계획</h2>
+<h2 class="pb">4. 데이터 확인 계획 (10/15 가설 → 10/16부터 직접 확인)</h2>
 <table>
-<tr><th style="width:16%">확인 항목</th><th style="width:43%">확인한 결과</th><th>처리</th></tr>
-<tr><td>구조</td><td>입력 7,535샷(학습 5,274 / public 1,130 / private 1,131), 정상 77.6%</td><td>분할표대로 사용</td></tr>
-<tr><td>식별·상수 열</td><td>식별 열 3개(shot_id·id·Shot), Min/Max 상수 열 8개</td><td>제거. 32열 → 21열 + 표시 열 4개 = 25개</td></tr>
-<tr><td>결측·이상값</td><td>공장 온도·습도 90행 결측(전부 제품 유형 2), 설비 정지로 보이는 긴 사이클·속도 0 등 이상치 15행</td><td>앞뒤 실측 30개씩의 중앙값으로 채움 + 결측 표시 열. 이상치는 지우지 않고 표시 열만 추가</td></tr>
-<tr><td>중복 행(쌍둥이)</td><td>입력 21개가 앞 행과 같은 행이 학습의 42%, 같은 묶음 안 라벨 일치 97.8%. 시험도 약 58%가 같은 구조. shot 4208에서 제품이 바뀌고 불량 종류가 제품·시기에 몰림</td><td>행은 유지하고 묶음 번호를 검증 분할에만 사용(특징 아님). 검증을 묶음·시간순으로 따로 재고 원인 분석은 제품 유형별로 수행</td></tr>
-<tr><td>라벨 구조</td><td>원본 불량 기록은 13유형 × _1/_2 = 26열이고 기타불량 76행 중 Bubble 52건</td><td>라벨 구조를 이해하는 분석용으로만 읽고 특징·학습에는 쓰지 않음</td></tr>
+<tr><th style="width:16%">확인 항목</th><th style="width:42%">확인한 결과</th><th>처리</th></tr>
+<tr><td>구조·열·결측</td><td>학습 5,274 / public 1,130 / private 1,131샷. 식별 열 3개, Min/Max 상수 열 8개. 공장 온도·습도 90행 결측, 설비 정지로 보이는 이상치 15행</td><td>식별·상수 열 제거(32열 → 25개). 결측은 앞뒤 실측 중앙값 + 표시 열, 이상치는 표시만 추가</td></tr>
+<tr><td>중복 행·제품 전환</td><td>입력이 앞 행과 같은 행(쌍둥이)이 학습 42%, 시험 약 58%. shot 4208에서 제품이 바뀌고 불량 종류가 제품·시기에 몰림</td><td>묶음 번호는 검증 분할에만 사용. 검증을 묶음·시간순으로 따로 측정</td></tr>
+<tr><td>라벨 구조·금지 사항</td><td>원본 불량 기록은 13유형 × _1/_2 = 26열, 기타불량 76행 중 Bubble 52건</td><td>분석용으로만 읽음. shot_id·id·Shot과 정답에서 만든 값, 앞뒤 샷의 정답은 쓰지 않음(앞뒤 샷의 입력은 사용)</td></tr>
 </table>
-<p><b>금지 사항 준수:</b> shot_id·id·Shot은 특징으로 쓰지 않았고, 정답에서 만든 값과 앞뒤 샷의 <b>정답</b>은 쓰지 않았다. 앞뒤 샷의 <b>입력</b>은 특징으로 쓴다.</p>
 
 <h2>5. 접근 방법</h2>
 <ul>
-<li><b>기준 모델:</b> 로지스틱(class_weight, 공개 기준선 0.2517)과 랜덤포레스트로 기준선을 만들고, 10/16 첫 제출로 파이프라인을 확인했다.</li>
-<li><b>MLP:</b> 입력 25 → 은닉 128 → 64 → 출력 7, ReLU, 드롭아웃 0.2, 클래스 가중 교차엔트로피, Adam 1e-3, 검증 손실이 최저인 epoch 18에서 멈춤. 리더보드 구조에서는 0.289로 트리(0.58대)보다 낮았는데, 시험의 58%가 학습에 같은 입력이 있어 트리는 외우고 MLP는 못 외우기 때문이다(새 입력만 보면 0.277 대 0.279로 같다).</li>
-<li><b>비교 실험 3종</b>(한 번에 하나만 변경): ① 앞뒤 사건 입력값 추가 +0.0045(채택), ② 클래스 가중치 강도 0.3 / 0.75 / 1.0 → 모두 노이즈 수준(0.5 유지), ③ 잎 크기 1 → 2 → 0.608 vs 0.610(동일).</li>
-<li><b>1안(최종 제출안):</b> 랜덤포레스트 + ExtraTrees 확률 평균 + 두 단계(불량 여부 → 불량 종류) 혼합 + 앞뒤 사건 입력 40개(입력 25 → 65개). 뒤 사건 입력이 필요해 사후 분석·일괄 선별용이다. <b>2안(현장성을 높인 또 다른 안):</b> 랜덤포레스트 2개 평균, 입력 25개로 실시간 판정이 된다.</li>
-<li><b>검증 방법:</b> 무작위 80/20, 시간순 80/20에 더해 쌍둥이를 같은 쪽에 둔 5분할(새 입력)과 연속 100샷을 떼는 5분할(새 생산 구간)을 쟀다. 학습곡선은 epoch 곡선과 데이터 20~100% 곡선 2종이다.</li>
-<li><b>모델 선택:</b> 10/15 계획은 "public 점수로 고르지 않는다"였으나, 실제로는 public 점수가 높은 1안(0.5987 대 0.5710)을 최종으로 정했다. 차이 0.028은 표본 흔들림(SD 0.037) 안이라 학습 데이터 검증으로 확인했고(무작위 1안 0.560 대 2안 0.504), 새 입력에서는 순위가 뒤집힘(0.258 대 0.323)을 한계로 밝혔다.</li>
-<li><b>운영 기준(Q2):</b> 놓침 1건 = 헛경보 5·10·20건으로 가정한 비용표로 운영안을 골랐다. 제출 CSV(정상 ×1.0, macro F1용)와 운영안(정상 ×0.1, 놓침 비용용)은 목적이 달라 분리했고, 두 모델의 최저 비용 차이는 4% 안이다. <b>원인 분석(Q3):</b> 불량 종류별 RF의 순열 중요도로 조건을 뽑아 구간별 불량률을 직접 세고, 인과가 아닌 관리 후보로만 쓴다.</li>
+<li><b>기준 모델·MLP:</b> 로지스틱(공개 기준선 0.2517)·랜덤포레스트로 기준선을 만들고 10/16 첫 제출로 파이프라인을 확인했다. MLP는 입력 25 → 128 → 64 → 7, ReLU, 드롭아웃 0.2, 클래스 가중 손실, Adam 1e-3, epoch 18에서 멈춘다. 리더보드 구조에서 0.289로 트리(0.58대)보다 낮은데, 시험의 58%가 학습에 같은 입력이 있어 트리는 외우고 MLP는 못 외우기 때문이다.</li>
+<li><b>비교 실험 3종</b>(한 번에 하나만): ① 앞뒤 사건 입력 추가 +0.0045(채택), ② 클래스 가중치 강도 0.3/0.75/1.0은 노이즈 수준(0.5 유지), ③ 잎 크기 1→2는 동일(0.608 vs 0.610).</li>
+<li><b>1안(최종 제출안):</b> 랜덤포레스트 + ExtraTrees 확률 평균 + 두 단계(불량 여부 → 종류) + 앞뒤 사건 입력 40개(25 → 65개). 뒤 사건 입력이 필요해 사후 분석·일괄 선별용이다. <b>2안(현장성을 높인 또 다른 안):</b> 랜덤포레스트 2개 평균, 입력 25개, 실시간 판정이 된다.</li>
+<li><b>검증 방법:</b> 무작위 80/20, 시간순 80/20, 쌍둥이를 같은 쪽에 둔 5분할(새 입력), 연속 100샷을 떼는 5분할(새 생산 구간). 학습곡선 2종(epoch, 데이터 20~100%)을 그렸다.</li>
+<li><b>모델 선택:</b> 10/15 계획은 "public 점수로 고르지 않는다"였으나, 실제로는 public 점수가 높은 1안(0.5987 대 0.5710)을 정했다. 차이 0.028은 표본 흔들림(SD 0.037) 안이라 검증으로 확인했고(무작위 0.560 대 0.504), 새 입력에서 순위가 뒤집힘(0.258 대 0.323)을 한계로 밝혔다.</li>
+<li><b>운영 기준·원인 분석:</b> 놓침 1건 = 헛경보 5·10·20건 가정의 비용표로 운영안을 골랐다. 제출 CSV(정상 ×1.0)와 운영안(정상 ×0.1)은 목적이 달라 분리했다. 원인은 불량 종류별 RF의 순열 중요도로 조건을 뽑아 구간별 불량률을 직접 세고, 인과가 아닌 관리 후보로만 쓴다.</li>
 </ul>
 
-<h2 class="pb">6. 일정</h2>
+<h2>6. 일정</h2>
 <table>
-<tr><th style="width:13%">날짜</th><th style="width:19%">담당</th><th>산출물</th></tr>
-<tr><td>10/15 목</td><td>강문주</td><td>기획서 제출 18:00</td></tr>
-<tr><td>10/16 금</td><td>김하진</td><td>데이터 메모, 첫 제출 1회</td></tr>
-<tr><td>10/19 월</td><td>강문주·김다한</td><td>1안·2안 전처리 목록과 근거</td></tr>
-<tr><td>10/20~21</td><td>강문주·오정수</td><td>로지스틱·RF·MLP 점수표, 비교 실험 3종 (10/21 RF 잎 10 → public 0.4089)</td></tr>
-<tr><td>10/22 목</td><td>오정수</td><td>중간 점검 발표(5분). RF 잎 1 → public 0.5853</td></tr>
-<tr><td>10/22 목</td><td>강문주·오정수</td><td>학습곡선 2종, 분할 비교</td></tr>
+<tr><th style="width:13%">날짜</th><th style="width:21%">담당</th><th>산출물</th></tr>
+<tr><td>10/15~16</td><td>강문주·김하진</td><td>10/15 기획서 제출(강문주), 10/16 데이터 메모와 첫 제출 1회(김하진)</td></tr>
+<tr><td>10/19~21</td><td>강문주·김다한·오정수</td><td>1안·2안 전처리 목록과 근거(10/19), 로지스틱·RF·MLP 점수표와 비교 실험 3종(10/20~21)</td></tr>
+<tr><td>10/22 목</td><td>오정수·강문주</td><td>중간 점검 발표(5분), 학습곡선 2종·분할 비교</td></tr>
 <tr><td>10/23 금</td><td>강문주·오정수</td><td>비용표, 임계값별 표, 운영안</td></tr>
 <tr><td>10/26 월</td><td>전원</td><td>구간별 불량률, 현장 제안과 한계</td></tr>
 <tr><td>10/27 화</td><td>김지수·김다한·강문주</td><td>그림, 보고서, 발표 자료, 웹 시각화, 수치 통일, 재현 코드 검수</td></tr>
-<tr><td>10/28 수</td><td>전원</td><td>최종 제출 (CSV·코드·보고서 PDF·기획서·시각화·발표 자료·깃 링크). 제출 전 <code>제출_예시.csv</code>와 형식(2,261행, <code>shot_id,label</code>)·상대경로·시드·실행 시간 점검</td></tr>
+<tr><td>10/28 수</td><td>전원</td><td>최종 제출(CSV·코드·보고서 PDF·기획서·시각화·발표 자료·깃 링크). 제출 전 <code>제출_예시.csv</code>와 형식·상대경로·시드·실행 시간 점검</td></tr>
 <tr><td>10/29 목</td><td>오정수</td><td>최종 발표 10분 + 구술 질의응답 10분</td></tr>
 </table>
 
 <h2>7. 위험과 대응</h2>
 <table>
-<tr><th style="width:24%">위험</th><th style="width:36%">대응 계획</th><th>실제 결과</th></tr>
-<tr><td>MLP가 기준선보다 낮다</td><td>원인을 데이터 특성으로 분석해 보고서에 쓴다</td><td>리더보드 구조에서 트리가 훨씬 높음. 같은 입력을 외우는 차이임을 새 입력 검증으로 확인해 보고서 3절에 정리</td></tr>
-<tr><td>희귀 클래스를 못 맞힌다</td><td>클래스별로 따로 보고, 끝내 안 되면 한계로 숫자와 함께 보고</td><td>새 입력에서 기타불량 76건 중 0건. 서로 다른 유형을 한 칸에 묶은 라벨이라 어려움을 명시</td></tr>
-<tr><td>public 점수에 맞춘 과적합, 무작위 점수가 시간순보다 높다</td><td>모델·임계값은 train 내 검증으로 정하고 시간순 점수를 배포 성능으로 보고</td><td>최종 제출은 public 기준으로 정했으나 차이가 표본 흔들림 안임을 밝히고 검증 수치를 함께 보고. 무작위 0.560 대 시간순 0.125라 운영안은 경보 기준으로 보완</td></tr>
-<tr><td>AI 답을 검증 없이 쓴다</td><td>질문, AI 답, 검증 방법, 채택/기각을 기록</td><td>직접 실행해 기각한 조언을 보고서 10절에 정리(이웃 라벨 사용, 내부 점수의 리더보드 예측 등)</td></tr>
-<tr><td>코드가 발표 당일 재현되지 않는다</td><td>새 폴더에서 <code>python main.py</code>를 실행해 확인, 팀장이 직접 고쳐 돌려 본다</td><td>같은 CSV 재현, 경보 기준 한 줄(<code>ALERT_NORMAL_SCALE</code>)을 바꿔도 정상 실행</td></tr>
-<tr><td>일정이 밀린다</td><td>우선순위는 Q1 → 운영안 → 원인 분석</td><td>세 질문 모두 일정 안에 완료</td></tr>
+<tr><th style="width:24%">위험</th><th style="width:34%">대응 계획</th><th>실제 결과</th></tr>
+<tr><td>MLP가 기준선보다 낮다</td><td>원인을 데이터 특성으로 분석해 보고서에 쓴다</td><td>리더보드 구조에서 트리가 훨씬 높음. 같은 입력을 외우는 차이임을 새 입력 검증으로 확인</td></tr>
+<tr><td>희귀 클래스를 못 맞힘, public 점수 과적합, 무작위 점수가 시간순보다 높다</td><td>클래스별·시간순 검증을 함께 보고하고 안 되는 것은 한계로 밝힌다</td><td>기타불량 76건 중 0건. public 기준으로 1안을 정했으나 차이가 표본 흔들림 안임을 밝힘. 무작위 0.560 대 시간순 0.125라 운영안은 경보 기준으로 보완</td></tr>
+<tr><td>AI 답을 검증 없이 쓴다</td><td>질문, AI 답, 검증 방법, 채택/기각을 기록</td><td>직접 실행해 기각한 조언을 보고서 10절에 정리</td></tr>
+<tr><td>코드가 발표 당일 재현되지 않는다</td><td>새 폴더에서 <code>python main.py</code>를 실행해 확인하고, 팀장이 직접 고쳐 돌려 본다</td><td>같은 CSV 재현, 경보 기준 한 줄(<code>ALERT_NORMAL_SCALE</code>)을 바꿔도 정상 실행</td></tr>
 </table>
 </body></html>
